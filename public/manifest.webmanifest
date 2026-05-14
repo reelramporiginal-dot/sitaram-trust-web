@@ -1,0 +1,17 @@
+{
+  "name": "Shri Sitaram Seva Trust",
+  "short_name": "Sitaram Stay",
+  "description": "Luxury hospitality and room booking in Ayodhya Dham.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffaf1",
+  "theme_color": "#4b0718",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}
