@@ -21,14 +21,14 @@ import type { Booking, LocalService, Review, Room, Settings, Temple, VideoItem }
 // ============================================
 
 const NOTIFICATION_CONFIG = {
-  // ⚠️ STEP 1: Web3Forms se key lein (https://web3forms.com) - FREE
-  web3formsKey: 'YOUR_WEB3FORMS_ACCESS_KEY',
+  // ✅ Web3Forms Key - Email Notification ke liye
+  web3formsKey: '537567d5-c2c1-4ffc-9624-1d1675e74b2f',
 
-  // ⚠️ STEP 2: CallMeBot setup karein (niche guide hai)
-  // Har number ka alag API key hoga
+  // ⚠️ WhatsApp Keys - Abhi 'SKIP_FOR_NOW' hai
+  // Jab CallMeBot se key milegi tab replace karna
   whatsappNumbers: [
-    { phone: '919918310009', apiKey: 'YOUR_CALLMEBOT_API_KEY_1' },
-    { phone: '918303333309', apiKey: 'YOUR_CALLMEBOT_API_KEY_2' },
+    { phone: '919918310009', apiKey: 'SKIP_FOR_NOW' },
+    { phone: '918303333309', apiKey: 'SKIP_FOR_NOW' },
   ],
 }
 
@@ -41,7 +41,7 @@ async function sendEmailNotification(booking: Booking, settings: Settings) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         access_key: NOTIFICATION_CONFIG.web3formsKey,
-        subject: `🚩 New Booking: ${booking.id} - ${booking.name}`,
+        subject: ` New Booking: ${booking.id} - ${booking.name}`,
         from_name: 'Shri Sitaram Seva Trust - Booking System',
         message: [
           '🚩 SHRI SITARAM SEVA TRUST',
@@ -54,8 +54,8 @@ async function sendEmailNotification(booking: Booking, settings: Settings) {
           `🏨 Room Type: ${booking.room}`,
           `📅 Check-in Date: ${booking.checkIn}`,
           `👥 Total Guests: ${booking.guests}`,
-          `⏰ Booking Time: ${currentTime}`,
-          `📊 Status: ${booking.status}`,
+          ` Booking Time: ${currentTime}`,
+          ` Status: ${booking.status}`,
           '',
           `📍 Property: ${settings.trustName}`,
           `📍 Address: ${settings.address}`,
@@ -88,13 +88,13 @@ async function sendWhatsAppNotification(booking: Booking) {
         '🚩 *Shri Sitaram Seva Trust*',
         '*━━ New Booking Alert! ━━*',
         '',
-        `📋 *Booking ID:* ${booking.id}`,
+        ` *Booking ID:* ${booking.id}`,
         `👤 *Name:* ${booking.name}`,
         `📞 *Phone:* ${booking.phone}`,
         `🏨 *Room:* ${booking.room}`,
         `📅 *Check-in:* ${booking.checkIn}`,
         `👥 *Guests:* ${booking.guests}`,
-        `⏰ *Time:* ${currentTime}`,
+        ` *Time:* ${currentTime}`,
         '',
         '_Kripya yatri se sampark karein._',
       ].join('\n')
@@ -102,10 +102,12 @@ async function sendWhatsAppNotification(booking: Booking) {
 
     // Sabhi numbers pe WhatsApp bhejo
     for (const entry of NOTIFICATION_CONFIG.whatsappNumbers) {
-      fetch(
-        `https://api.callmebot.com/whatsapp.php?phone=${entry.phone}&text=${message}&apikey=${entry.apiKey}`,
-        { mode: 'no-cors' }
-      ).catch(() => {})
+      if (entry.apiKey !== 'SKIP_FOR_NOW') {
+        fetch(
+          `https://api.callmebot.com/whatsapp.php?phone=${entry.phone}&text=${message}&apikey=${entry.apiKey}`,
+          { mode: 'no-cors' }
+        ).catch(() => {})
+      }
     }
   } catch {
     // WhatsApp fail hua toh bhi booking confirm rahegi
@@ -251,7 +253,7 @@ export function Home() {
         `📧 Email notification mein thodi der ho sakti hai.\n` +
         `📞 Agar jaldi response chahiye toh call karein:\n` +
         `${settings.phone} ya ${settings.secondaryPhone}\n\n` +
-        `Hamari seva desk aapse jald sampark karegi. 🙏`
+        `Hamari seva desk aapse jald sampark karegi. `
       )
     }
   }
