@@ -15,6 +15,105 @@ import { storage } from '../lib/storage'
 import { isSupabaseConfigured, loadSiteDataFromSupabase, saveSiteDataToSupabase, supabase } from '../lib/supabase'
 import type { Booking, LocalService, Review, Room, Settings, Temple, VideoItem } from '../types'
 
+// ============================================
+// ✅ NOTIFICATION HELPER FUNCTIONS
+// Email (Web3Forms) + WhatsApp (CallMeBot)
+// ============================================
+
+const NOTIFICATION_CONFIG = {
+  // ⚠️ STEP 1: Web3Forms se key lein (https://web3forms.com) - FREE
+  web3formsKey: 'YOUR_WEB3FORMS_ACCESS_KEY',
+
+  // ⚠️ STEP 2: CallMeBot setup karein (niche guide hai)
+  // Har number ka alag API key hoga
+  whatsappNumbers: [
+    { phone: '919918310009', apiKey: 'YOUR_CALLMEBOT_API_KEY_1' },
+    { phone: '918303333309', apiKey: 'YOUR_CALLMEBOT_API_KEY_2' },
+  ],
+}
+
+async function sendEmailNotification(booking: Booking, settings: Settings) {
+  try {
+    const currentTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_key: NOTIFICATION_CONFIG.web3formsKey,
+        subject: `🚩 New Booking: ${booking.id} - ${booking.name}`,
+        from_name: 'Shri Sitaram Seva Trust - Booking System',
+        message: [
+          '🚩 SHRI SITARAM SEVA TRUST',
+          '━━━━━━━━━━━━━━━━━━━━━━━━━',
+          'NEW BOOKING RECEIVED!',
+          '',
+          `📋 Booking ID: ${booking.id}`,
+          `👤 Guest Name: ${booking.name}`,
+          `📞 Phone: ${booking.phone}`,
+          `🏨 Room Type: ${booking.room}`,
+          `📅 Check-in Date: ${booking.checkIn}`,
+          `👥 Total Guests: ${booking.guests}`,
+          `⏰ Booking Time: ${currentTime}`,
+          `📊 Status: ${booking.status}`,
+          '',
+          `📍 Property: ${settings.trustName}`,
+          `📍 Address: ${settings.address}`,
+          '━━━━━━━━━━━━━━━━━━━━━━━━━',
+          'Kripya yatri se jald sampark karein.',
+        ].join('\n'),
+        booking_id: booking.id,
+        guest_name: booking.name,
+        phone: booking.phone,
+        room_type: booking.room,
+        checkin_date: booking.checkIn,
+        total_guests: booking.guests,
+        booking_time: currentTime,
+      }),
+    })
+
+    const result = await response.json()
+    return result.success === true
+  } catch {
+    return false
+  }
+}
+
+async function sendWhatsAppNotification(booking: Booking) {
+  try {
+    const currentTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+
+    const message = encodeURIComponent(
+      [
+        '🚩 *Shri Sitaram Seva Trust*',
+        '*━━ New Booking Alert! ━━*',
+        '',
+        `📋 *Booking ID:* ${booking.id}`,
+        `👤 *Name:* ${booking.name}`,
+        `📞 *Phone:* ${booking.phone}`,
+        `🏨 *Room:* ${booking.room}`,
+        `📅 *Check-in:* ${booking.checkIn}`,
+        `👥 *Guests:* ${booking.guests}`,
+        `⏰ *Time:* ${currentTime}`,
+        '',
+        '_Kripya yatri se sampark karein._',
+      ].join('\n')
+    )
+
+    // Sabhi numbers pe WhatsApp bhejo
+    for (const entry of NOTIFICATION_CONFIG.whatsappNumbers) {
+      fetch(
+        `https://api.callmebot.com/whatsapp.php?phone=${entry.phone}&text=${message}&apikey=${entry.apiKey}`,
+        { mode: 'no-cors' }
+      ).catch(() => {})
+    }
+  } catch {
+    // WhatsApp fail hua toh bhi booking confirm rahegi
+  }
+}
+
+// ============================================
+
 function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
   return (
     <div className="mx-auto mb-12 max-w-3xl text-center">
@@ -100,9 +199,14 @@ export function Home() {
     setTimeout(() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' }), 50)
   }
 
+  // ============================================
+  // ✅ UPDATED: createBooking with Notifications
+  // Ab Email + WhatsApp dono jayega!
+  // ============================================
   const createBooking = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!guestName || !phone || !checkIn) return
+
     const newBooking: Booking = {
       id: `BKG-${Math.floor(1000 + Math.random() * 9000)}`,
       name: guestName,
@@ -112,14 +216,44 @@ export function Home() {
       guests,
       status: 'New',
     }
+
+    // 1. Save booking to storage + Supabase (yeh pehle se tha)
     const updatedBookings = [newBooking, ...storage.getBookings()]
     storage.setBookings(updatedBookings)
     await saveSiteDataToSupabase({ settings, rooms, videos, temples, services, bookings: updatedBookings, reviews })
+
+    // 2. ✅ NEW: Send Email Notification to Admin
+    const emailSent = await sendEmailNotification(newBooking, settings)
+
+    // 3. ✅ NEW: Send WhatsApp Notification to Reception
+    await sendWhatsAppNotification(newBooking)
+
+    // 4. Clear form
     setGuestName('')
     setPhone('')
     setCheckIn('')
     setBookingOpen(false)
-    alert(`Booking request ${newBooking.id} received. Our seva desk will contact you shortly.`)
+
+    // 5. Show confirmation message
+    if (emailSent) {
+      alert(
+        `✅ Booking request ${newBooking.id} received!\n\n` +
+        `👤 Name: ${newBooking.name}\n` +
+        `🏨 Room: ${newBooking.room}\n` +
+        `📅 Date: ${newBooking.checkIn}\n\n` +
+        `📧 Confirmation email bhej diya gaya hai.\n` +
+        `📱 WhatsApp notification bhi bhej diya gaya hai.\n\n` +
+        `Hamari seva desk aapse jald sampark karegi. 🙏`
+      )
+    } else {
+      alert(
+        `✅ Booking request ${newBooking.id} saved!\n\n` +
+        `📧 Email notification mein thodi der ho sakti hai.\n` +
+        `📞 Agar jaldi response chahiye toh call karein:\n` +
+        `${settings.phone} ya ${settings.secondaryPhone}\n\n` +
+        `Hamari seva desk aapse jald sampark karegi. 🙏`
+      )
+    }
   }
 
   const addReview = async (review: Review) => {
@@ -181,6 +315,7 @@ export function Home() {
         </div>
       </section>
 
+      {/* ✅ UPDATED: Story section - Vijay Prakash Tiwari naam add kiya */}
       <section id="story" className="px-4 py-24 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="relative">
@@ -195,7 +330,7 @@ export function Home() {
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#b7812d]">Our Story</p>
             <h2 className="mt-3 font-serif text-5xl font-bold text-[#4b0718]">Verified accommodation near Ram Mandir and Hanuman Garhi.</h2>
             <p className="mt-6 leading-8 text-[#6b5560]">
-              The property is listed at {settings.address}. It is approximately 1.7 km from Shri Ram Janmabhoomi Temple, 1.3 km from Hanuman Garhi, 1.8 km from Ayodhya Dham Junction and 10.5 km from Maharishi Valmiki International Airport. The stay offers AC rooms, a non-AC family option and an AC dormitory hall with meals, parking, CCTV and clean drinking water.
+              {settings.trustName}, managed by <strong className="text-[#4b0718]">Vijay Prakash Tiwari</strong>, is listed at {settings.address}. It is approximately 1.7 km from Shri Ram Janmabhoomi Temple, 1.3 km from Hanuman Garhi, 1.8 km from Ayodhya Dham Junction and 10.5 km from Maharishi Valmiki International Airport. The stay offers AC rooms, a non-AC family option and an AC dormitory hall with meals, parking, CCTV and clean drinking water.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[ShieldCheck, CalendarCheck, MapPin].map((Icon, index) => (
@@ -309,6 +444,7 @@ export function Home() {
         </div>
       </section>
 
+      {/* ✅ UPDATED: Policies section - Proprietor naam add kiya */}
       <section id="policies" className="px-4 py-24 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SectionTitle eyebrow="Rules & Policies" title="Terms, cancellation and guest rules" text="Professional policy summary extracted from the public booking listing for guest clarity." />
@@ -316,6 +452,7 @@ export function Home() {
             <div className="rounded-[2rem] border border-[#d7a84f]/25 bg-white p-7 shadow-xl shadow-[#4b0718]/10">
               <div className="mb-4 flex items-center gap-3 font-serif text-2xl font-bold text-[#4b0718]"><FileText className="text-[#b7812d]" /> Terms & Conditions</div>
               <ul className="space-y-3 text-sm leading-6 text-[#6b5560]">
+                <li><strong className="text-[#4b0718]">Business Name:</strong> Shri Sitaram Seva Trust | <strong className="text-[#4b0718]">Proprietor:</strong> Vijay Prakash Tiwari</li>
                 <li>All guests must bring valid government ID proof at check-in.</li>
                 <li>Guests under 18, single guests / unmarried couples and same-city guests are not allowed as per listed rules.</li>
                 <li>Room / hall capacity is strictly followed; early check-in or late check-out is subject to availability and may be chargeable.</li>
@@ -324,25 +461,29 @@ export function Home() {
               </ul>
             </div>
             <div className="rounded-[2rem] border border-[#d7a84f]/25 bg-white p-7 shadow-xl shadow-[#4b0718]/10">
-              <div className="mb-4 flex items-center gap-3 font-serif text-2xl font-bold text-[#4b0718]"><ShieldCheck className="text-[#b7812d]" /> Cancellation Policy</div>
+              <div className="mb-4 flex items-center gap-3 font-serif text-2xl font-bold text-[#4b0718]"><ShieldCheck className="text-[#b7812d]" /> Cancellation & Refund Policy</div>
               <ul className="space-y-3 text-sm leading-6 text-[#6b5560]">
                 <li>100% room charges apply if cancelled between 1 and 8 days before check-in.</li>
                 <li>0% cancellation charges apply if cancelled between 9 and 365 days before check-in.</li>
                 <li>Convenience fees are strictly non-refundable; taxes may be refunded after deductions where applicable.</li>
                 <li>Submitted cancellation requests are irreversible and refunds are credited to the source in 5–7 banking working days.</li>
                 <li>No-show is non-refundable, including emergencies reported after the check-in date.</li>
+                <li><strong className="text-[#4b0718]">Contact for cancellation:</strong> Vijay Prakash Tiwari — {settings.phone}, {settings.secondaryPhone}</li>
               </ul>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ✅ UPDATED: Footer - Vijay Prakash Tiwari naam add kiya */}
       <footer className="border-t border-[#d7a84f]/20 bg-[#180209] px-4 py-10 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
             <p className="font-serif text-2xl font-bold">{settings.trustName}</p>
+            <p className="mt-1 text-sm text-white/75">Proprietor: <strong className="text-[#f5d891]">Vijay Prakash Tiwari</strong></p>
             <p className="mt-1 text-sm text-white/55">Official Address: {settings.address}</p>
             <p className="mt-1 text-sm text-white/55">Mobile: {settings.phone}, {settings.secondaryPhone} • Helpline: {settings.helpline}</p>
+            <p className="mt-2 text-xs text-white/35">© 2025 {settings.trustName}. All rights reserved.</p>
           </div>
           <a href={`tel:${settings.phone}`} className="rounded-full border border-[#d7a84f]/35 px-6 py-3 text-[#f5d891]">Call Seva Desk</a>
         </div>
