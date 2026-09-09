@@ -3,6 +3,7 @@ import { BarChart3, Eye, EyeOff, Film, Hotel, ImagePlus, Landmark, LogOut, Palet
 import { useEffect, useMemo, useState } from 'react'
 import { storage } from '../lib/storage'
 import { isSupabaseConfigured, loadSiteDataFromSupabase, saveSiteDataToSupabase, supabase, uploadPublicAsset } from '../lib/supabase'
+import { useNoIndex } from '../lib/useNoIndex'
 import type { Booking, LocalService, Review, Room, Settings, Temple, VideoItem } from '../types'
 
 function Stat({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
@@ -20,6 +21,7 @@ function Stat({ label, value, icon: Icon }: { label: string; value: string | num
 type AdminTab = 'overview' | 'settings' | 'media' | 'rooms' | 'guide' | 'services' | 'bookings' | 'reviews'
 
 export function Admin() {
+  useNoIndex()
   const navigate = useNavigate()
   const isAuthed = localStorage.getItem(storage.keys.authed) === 'true'
   const [settings, setSettings] = useState<Settings>(() => storage.getSettings())
@@ -277,167 +279,4 @@ export function Admin() {
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <select value={video.visibility} onChange={(e) => updateVideo(video.id, { visibility: e.target.value as VideoItem['visibility'] })} className="admin-input max-w-48">
                       <option value="public">Public</option>
-                      <option value="unlisted">Unlisted</option>
-                    </select>
-                    <select value={video.popupSource} onChange={(e) => updateVideo(video.id, { popupSource: e.target.value as VideoItem['popupSource'] })} className="admin-input max-w-56">
-                      <option value="storage">Popup: Uploaded Storage Video</option>
-                      <option value="youtube">Popup: YouTube Video</option>
-                    </select>
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#6b5560]">{video.visibility === 'public' ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} Public videos website par dikhenge; unlisted admin me safe rahenge.</span>
-                  </div>
-                </div>
-              ))}
-              <button onClick={() => setVideos([...videos, { id: crypto.randomUUID(), title: 'New Promo Video', description: 'Describe the new trust or room video.', src: '/videos/promo.mp4', poster: '/images/lobby.jpg', duration: '00:30', youtubeUrl: 'https://www.youtube.com/watch?v=ysz5S6PUM-U', visibility: 'unlisted', popupSource: 'storage' }])} className="inline-flex items-center gap-2 rounded-full bg-[#4b0718] px-5 py-3 font-bold text-white"><Upload className="h-4 w-4" /> Add Video</button>
-            </div>
-          </div>
-          )}
-        </section>}
-
-        {activeTab === 'guide' && <section className="admin-card mt-8">
-          <div className="admin-heading"><Landmark /> Main Temples & Distances</div>
-          <p className="mt-3 text-sm text-[#6b5560]">Manage the Explore Ayodhya Dham guide cards shown on the public website.</p>
-          <button type="button" onClick={() => setTemples([...temples, { id: crypto.randomUUID(), name: 'New Temple', distance: '0 km from trust', image: '/images/guide/ram-mandir.jpg', description: 'Add temple description.' }])} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#4b0718] px-4 py-2 text-sm font-bold text-white"><ImagePlus className="h-4 w-4" /> Add Temple</button>
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {temples.map((temple) => (
-              <div key={temple.id} className="rounded-[1.5rem] border border-[#d7a84f]/20 bg-[#fffaf1] p-5">
-                <button type="button" onClick={() => setTemples(temples.filter((item) => item.id !== temple.id))} className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#7d1128] px-3 py-2 text-xs font-bold text-white"><Trash2 className="h-3.5 w-3.5" /> Remove</button>
-                <img src={temple.image} alt={temple.name} className="h-40 w-full rounded-2xl object-cover" />
-                <label className="mt-4 block text-sm font-semibold text-[#4b0718]">Temple Name<input value={temple.name} onChange={(e) => updateTemple(temple.id, { name: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Distance<input value={temple.distance} onChange={(e) => updateTemple(temple.id, { distance: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Image URL<input value={temple.image} onChange={(e) => updateTemple(temple.id, { image: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Direct Upload Temple Image
-                  <input type="file" accept="image/*" onChange={(e) => uploadAndSet(e.target.files?.[0], (url) => updateTemple(temple.id, { image: url }), 'temples')} className="mt-2 block w-full text-sm" />
-                </label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Description<textarea value={temple.description} onChange={(e) => updateTemple(temple.id, { description: e.target.value })} className="admin-input mt-2 min-h-24" /></label>
-              </div>
-            ))}
-          </div>
-        </section>}
-
-        {activeTab === 'services' && <section className="admin-card mt-8">
-          <div className="admin-heading"><Utensils /> Guest Services</div>
-          <p className="mt-3 text-sm text-[#6b5560]">Food, bike/car transport aur Ayodhya guide services ko public website par manage karein.</p>
-          <button type="button" onClick={() => setServices([...services, { id: crypto.randomUUID(), title: 'New Service', subtitle: 'Service subtitle', description: 'Service description.', image: '/images/services/food.jpg', highlights: ['Highlight one'], cta: 'Request Service' }])} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#4b0718] px-4 py-2 text-sm font-bold text-white"><ImagePlus className="h-4 w-4" /> Add Service</button>
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {services.map((service) => (
-              <div key={service.id} className="rounded-[1.5rem] border border-[#d7a84f]/20 bg-[#fffaf1] p-5">
-                <button type="button" onClick={() => setServices(services.filter((item) => item.id !== service.id))} className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#7d1128] px-3 py-2 text-xs font-bold text-white"><Trash2 className="h-3.5 w-3.5" /> Remove</button>
-                <img src={service.image} alt={service.title} className="h-40 w-full rounded-2xl object-cover" />
-                <label className="mt-4 block text-sm font-semibold text-[#4b0718]">Title<input value={service.title} onChange={(e) => updateService(service.id, { title: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Subtitle<input value={service.subtitle} onChange={(e) => updateService(service.id, { subtitle: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Image URL<input value={service.image} onChange={(e) => updateService(service.id, { image: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Direct Upload Service Image
-                  <input type="file" accept="image/*" onChange={(e) => uploadAndSet(e.target.files?.[0], (url) => updateService(service.id, { image: url }), 'services')} className="mt-2 block w-full text-sm" />
-                </label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Description<textarea value={service.description} onChange={(e) => updateService(service.id, { description: e.target.value })} className="admin-input mt-2 min-h-24" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Highlights, comma separated<input value={service.highlights.join(', ')} onChange={(e) => updateService(service.id, { highlights: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">CTA Text<input value={service.cta} onChange={(e) => updateService(service.id, { cta: e.target.value })} className="admin-input mt-2" /></label>
-              </div>
-            ))}
-          </div>
-        </section>}
-
-        {activeTab === 'rooms' && <section className="admin-card mt-8">
-          <div className="admin-heading"><Hotel /> Room Inventory</div>
-          <div className="mt-4 rounded-2xl border border-[#d7a84f]/25 bg-white p-4">
-            <p className="font-bold text-[#4b0718]">New room / future inventory add karein</p>
-            <p className="mt-1 text-sm text-[#6b5560]">Add Room button se naya blank room card banega. Phir main image aur gallery images direct upload kar sakte hain.</p>
-            <button type="button" onClick={() => setRooms([...rooms, { id: crypto.randomUUID(), name: 'New Room', tagline: 'New room category', description: 'Add room details.', price: 0, tax: 0, available: 1, capacity: '2 Guests', size: 'Room Size', floor: 'Ground Floor', bathType: 'Attached Bath', image: '/images/yatradham/property-1.jpg', gallery: [], amenities: ['AC'] }])} className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#4b0718] px-4 py-2 text-sm font-bold text-white"><ImagePlus className="h-4 w-4" /> Add New Room</button>
-          </div>
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {rooms.map((room) => (
-              <div key={room.id} className="rounded-[1.5rem] border border-[#d7a84f]/20 bg-[#fffaf1] p-5">
-                <button type="button" onClick={() => setRooms(rooms.filter((item) => item.id !== room.id))} className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#7d1128] px-3 py-2 text-xs font-bold text-white"><Trash2 className="h-3.5 w-3.5" /> Remove Room</button>
-                <img src={room.image} alt={room.name} className="h-40 w-full rounded-2xl object-cover" />
-                <label className="mt-4 block text-sm font-semibold text-[#4b0718]">Room Name<input value={room.name} onChange={(e) => updateRoom(room.id, { name: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Price<input type="number" value={room.price} onChange={(e) => updateRoom(room.id, { price: Number(e.target.value) })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Tax / Fees<input type="number" value={room.tax} onChange={(e) => updateRoom(room.id, { tax: Number(e.target.value) })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Availability<input type="number" value={room.available} onChange={(e) => updateRoom(room.id, { available: Number(e.target.value) })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Floor<input value={room.floor} onChange={(e) => updateRoom(room.id, { floor: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Bath Type<input value={room.bathType} onChange={(e) => updateRoom(room.id, { bathType: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Main Image<input value={room.image} onChange={(e) => updateRoom(room.id, { image: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Direct Upload Main Room Image
-                  <input type="file" accept="image/*" onChange={(e) => uploadAndSet(e.target.files?.[0], (url) => updateRoom(room.id, { image: url }), 'rooms')} className="mt-2 block w-full text-sm" />
-                </label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Direct Upload Room Gallery Images
-                  <input type="file" accept="image/*" multiple onChange={(e) => uploadRoomGallery(room, e.target.files)} className="mt-2 block w-full text-sm" />
-                </label>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {room.gallery.map((image) => (
-                    <div key={image} className="relative overflow-hidden rounded-xl">
-                      <img src={image} alt="Gallery" className="h-16 w-full object-cover" />
-                      <button type="button" onClick={() => updateRoom(room.id, { gallery: room.gallery.filter((item) => item !== image) })} className="absolute right-1 top-1 rounded-full bg-[#4b0718] px-2 py-0.5 text-[10px] font-bold text-white">Remove</button>
-                    </div>
-                  ))}
-                </div>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Description<textarea value={room.description} onChange={(e) => updateRoom(room.id, { description: e.target.value })} className="admin-input mt-2 min-h-24" /></label>
-              </div>
-            ))}
-          </div>
-        </section>}
-
-        {activeTab === 'bookings' && <section className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="admin-card">
-            <div className="admin-heading"><Users /> Booking Overview</div>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="bg-[#4b0718] text-white"><tr><th className="p-3">ID</th><th>Name</th><th>Room</th><th>Check‑in</th><th>Status</th></tr></thead>
-                <tbody>
-                  {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b border-[#ead8b6]">
-                      <td className="p-3 font-bold text-[#4b0718]">{booking.id}</td><td>{booking.name}<br /><span className="text-xs text-[#8d7480]">{booking.phone}</span></td><td>{booking.room}</td><td>{booking.checkIn}</td>
-                      <td><select value={booking.status} onChange={(e) => updateBooking(booking.id, e.target.value as Booking['status'])} className="rounded-xl border border-[#d7a84f]/30 p-2"><option>New</option><option>Confirmed</option><option>Checked-in</option></select><button type="button" onClick={() => setBookings(bookings.filter((item) => item.id !== booking.id))} className="ml-2 rounded-full bg-[#7d1128] px-3 py-1 text-xs font-bold text-white">Delete</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="admin-card">
-            <div className="admin-heading"><BarChart3 /> Analytics</div>
-            <div className="mt-6 space-y-5">
-              {[['Website Visitors', 82], ['Room Detail Views', 67], ['Booking CTA Clicks', 49], ['QR Payment Scans', 38]].map(([label, width]) => (
-                <div key={label}>
-                  <div className="mb-2 flex justify-between text-sm font-semibold text-[#4b0718]"><span>{label}</span><span>{width}%</span></div>
-                  <div className="h-3 rounded-full bg-[#f1dfbd]"><div className="h-3 rounded-full bg-gradient-to-r from-[#7d1128] to-[#d7a84f]" style={{ width: `${width}%` }} /></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>}
-
-        {activeTab === 'reviews' && <section className="admin-card mt-8">
-          <div className="admin-heading"><BarChart3 /> Ratings & Guest Reviews</div>
-          <p className="mt-3 text-sm text-[#6b5560]">Public website par submit hue ratings yahan manage honge. Edit/delete karke Save dabayen.</p>
-          <button type="button" onClick={() => setReviews([{ id: crypto.randomUUID(), name: 'New Guest', rating: 5, message: 'Add review message.', date: new Date().toISOString().slice(0, 10) }, ...reviews])} className="mt-4 rounded-full bg-[#4b0718] px-4 py-2 text-sm font-bold text-white">Add Review</button>
-          <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            {reviews.map((review) => (
-              <div key={review.id} className="rounded-[1.5rem] border border-[#d7a84f]/20 bg-[#fffaf1] p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-bold text-[#4b0718]">Review</p>
-                  <button type="button" onClick={() => setReviews(reviews.filter((item) => item.id !== review.id))} className="rounded-full bg-[#7d1128] px-3 py-2 text-xs font-bold text-white">Delete</button>
-                </div>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Guest Name<input value={review.name} onChange={(e) => updateReview(review.id, { name: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Rating<input type="number" min={1} max={5} value={review.rating} onChange={(e) => updateReview(review.id, { rating: Math.max(1, Math.min(5, Number(e.target.value))) })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Date<input value={review.date} onChange={(e) => updateReview(review.id, { date: e.target.value })} className="admin-input mt-2" /></label>
-                <label className="mt-3 block text-sm font-semibold text-[#4b0718]">Message<textarea value={review.message} onChange={(e) => updateReview(review.id, { message: e.target.value })} className="admin-input mt-2 min-h-24" /></label>
-              </div>
-            ))}
-          </div>
-        </section>}
-      </div>
-      <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-6 gap-1 rounded-[1.5rem] border border-[#d7a84f]/25 bg-[#2a0611]/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          const active = activeTab === tab.id
-          return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`rounded-2xl px-1 py-2 text-[10px] font-bold transition ${active ? 'bg-[#d7a84f] text-[#4b0718]' : 'text-white/70'}`}>
-              <Icon className="mx-auto mb-1 h-4 w-4" />
-              {tab.short}
-            </button>
-          )
-        })}
-      </nav>
-    </main>
-  )
-}
+                      <option value="unlisted">Unlisted</o
