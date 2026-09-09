@@ -24,7 +24,7 @@ export function LocalServices({ services, settings }: { services: LocalService[]
             return (
               <article key={service.id} className="group overflow-hidden rounded-[2rem] border border-[#d7a84f]/25 bg-white text-[#4b0718] shadow-2xl shadow-black/20">
                 <div className="relative h-72 overflow-hidden">
-                  <img src={service.image} alt={service.title} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+                  <img src={service.image} alt={`${service.title} — Shri Sitaram Seva Trust, Ayodhya`} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#2a0611]/85 via-transparent to-transparent" />
                   <div className="absolute bottom-5 left-5 right-5">
                     <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-[#d7a84f] text-[#4b0718]"><Icon /></div>
