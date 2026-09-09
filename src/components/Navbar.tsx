@@ -7,7 +7,9 @@ import type { Settings } from '../types'
 const links = [
   { href: '/', label: 'Home' },
   { href: '/#rooms', label: 'Rooms' },
+  { href: '/#location', label: 'Location' },
   { href: '/#video', label: 'OTT Player' },
+  { href: '/#faq', label: 'FAQ' },
   { href: '/#qr', label: 'QR Services' },
 ]
 
@@ -62,4 +64,4 @@ export function Navbar({ onBook, settings }: { onBook: () => void; settings: Set
       )}
     </header>
   )
-}
+          }
