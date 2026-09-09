@@ -14,7 +14,7 @@ export function AyodhyaGuide({ temples }: { temples: Temple[] }) {
           {temples.map((temple) => (
             <article key={temple.id} className="group overflow-hidden rounded-[2rem] border border-[#d7a84f]/25 bg-white shadow-xl shadow-[#4b0718]/10">
               <div className="relative h-72 overflow-hidden">
-                <img src={temple.image} alt={temple.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+                <img src={temple.image} alt={`${temple.name}, Ayodhya — ${temple.distance}`} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#2a0611]/85 to-transparent" />
                 <div className="absolute bottom-5 left-5 right-5 text-white">
                   <div className="inline-flex items-center gap-2 rounded-full bg-[#d7a84f] px-3 py-1 text-sm font-black text-[#4b0718]"><Navigation className="h-4 w-4" /> {temple.distance}</div>
