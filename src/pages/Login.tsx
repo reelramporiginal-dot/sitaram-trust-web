@@ -4,8 +4,10 @@ import { LockKeyhole } from 'lucide-react'
 import { LogoMark } from '../components/LogoMark'
 import { storage } from '../lib/storage'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { useNoIndex } from '../lib/useNoIndex'
 
 export function Login() {
+  useNoIndex()
   const navigate = useNavigate()
   const [email, setEmail] = useState('admin@sitaramsevatrust.org')
   const [password, setPassword] = useState('')
@@ -61,4 +63,4 @@ export function Login() {
       </div>
     </main>
   )
-}
+        }
