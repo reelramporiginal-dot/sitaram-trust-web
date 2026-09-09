@@ -5,7 +5,7 @@ export function RoomCard({ room, onBook }: { room: Room; onBook: (roomName: stri
   return (
     <article className="group overflow-hidden rounded-[2rem] border border-[#d7a84f]/20 bg-white shadow-xl shadow-[#4b0718]/10">
       <div className="relative h-72 overflow-hidden">
-        <img src={room.image} alt={room.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+        <img src={room.image} alt={`${room.name} at Shri Sitaram Seva Trust, Ayodhya`} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#25030d]/85 to-transparent" />
         <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4">
           <div>
@@ -34,7 +34,7 @@ export function RoomCard({ room, onBook }: { room: Room; onBook: (roomName: stri
         </div>
         <div className="mt-6 grid grid-cols-3 gap-2">
           {room.gallery.map((image) => (
-            <img key={image} src={image} alt={`${room.name} gallery`} className="h-20 rounded-2xl object-cover" />
+            <img key={image} src={image} alt={`${room.name} interior view, Shri Sitaram Seva Trust Ayodhya`} loading="lazy" decoding="async" className="h-20 rounded-2xl object-cover" />
           ))}
         </div>
         <button onClick={() => onBook(room.name)} className="mt-6 w-full rounded-full bg-[#4b0718] px-5 py-3 font-bold text-white shadow-lg shadow-[#4b0718]/20 transition hover:bg-[#7d1128]">
