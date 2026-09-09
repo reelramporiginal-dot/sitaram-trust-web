@@ -269,9 +269,18 @@ export function Home() {
     <div className="min-h-screen overflow-x-hidden bg-[#fffaf1]" style={{ backgroundColor: settings.lightColor } as React.CSSProperties}>
       <Navbar onBook={() => openBooking()} settings={settings} />
       <VideoPopup youtubeUrl={promoVideo?.youtubeUrl || 'https://www.youtube.com/watch?v=Jqv0k3rY2QQ'} videoSrc={promoVideo?.src} poster={promoVideo?.poster} temples={temples} source={promoVideo?.popupSource || 'storage'} trigger={promoTrigger} />
+      <main>
       <section className="relative flex min-h-screen items-center overflow-hidden bg-[#2a0611] px-4 pt-24 text-white sm:px-6 lg:px-8">
         <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0">
-          <img src={settings.heroImage} alt="Ayodhya Ram Mandir master shot" className="h-full w-full object-cover opacity-65" />
+          <img
+            src={settings.heroImage}
+            alt="Shri Sitaram Seva Trust hotel building near Ram Mandir, Ayodhya Dham"
+            className="h-full w-full object-cover opacity-65"
+            width={1920}
+            height={1080}
+            fetchPriority="high"
+            decoding="async"
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-[#24020c] via-[#4b0718]/80 to-[#24020c]/40" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(215,168,79,0.28),transparent_42%)]" />
         </motion.div>
@@ -312,7 +321,7 @@ export function Home() {
             </div>
           </motion.div>
           <motion.div initial={{ opacity: 0, x: 35 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.9, delay: 0.15 }} className="rounded-[2rem] border border-[#d7a84f]/30 bg-white/10 p-4 backdrop-blur-xl">
-            <img src={settings.heroCardImage} alt="Featured room at Shree Sitaram Seva Trust" className="h-[520px] w-full rounded-[1.5rem] object-cover" />
+            <img src={settings.heroCardImage} alt="Featured AC room at Shri Sitaram Seva Trust, Ayodhya" decoding="async" className="h-[520px] w-full rounded-[1.5rem] object-cover" />
           </motion.div>
         </div>
       </section>
@@ -321,7 +330,7 @@ export function Home() {
       <section id="story" className="px-4 py-24 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="relative">
-            <img src={settings.storyImage} alt="Reception area at Shree Sitaram Seva Trust" className="h-full min-h-[520px] rounded-[2rem] object-cover shadow-2xl" />
+            <img src={settings.storyImage} alt="Reception and stay area at Shri Sitaram Seva Trust, Ayodhya" loading="lazy" decoding="async" className="h-full min-h-[520px] rounded-[2rem] object-cover shadow-2xl" />
             <div className="absolute -bottom-8 right-8 rounded-[2rem] bg-[#4b0718] p-6 text-white shadow-xl">
               <HeartHandshake className="mb-3 h-8 w-8 text-[#f5d891]" />
               <p className="font-serif text-2xl font-bold">Seva + Luxury</p>
@@ -373,125 +382,4 @@ export function Home() {
         </div>
       </section>
 
-      <section id="location" className="bg-white px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr]">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#b7812d]">Location & Distances</p>
-            <h2 className="mt-3 font-serif text-5xl font-bold text-[#4b0718]">Lavkushnagar, Ramghat, Ayodhya</h2>
-            <p className="mt-5 leading-8 text-[#6b5560]">{settings.address}</p>
-            <div className="mt-8 grid gap-3 text-sm text-[#4b0718]">
-              {['Ayodhya Dham Junction Railway Station - 1.8 km', 'Maharishi Valmiki International Airport - 10.5 km', 'Shri Ram Janmabhoomi Temple - 1.7 km', 'Raj Dwar Mandir - 1.2 km', 'Dashrath Mahal / Ram Katha Museum / Kanak Bhavan - 1.3 km', 'Saryu River (Naya Ghat) - 2 km'].map((item) => (
-                <div key={item} className="rounded-2xl bg-[#fff8eb] p-4 font-semibold">{item}</div>
-              ))}
-            </div>
-          </div>
-          <div className="overflow-hidden rounded-[2rem] border border-[#d7a84f]/25 shadow-2xl shadow-[#4b0718]/10">
-            <iframe
-              title="Google Maps - Shree Sitaram Seva Trust Ayodhya"
-              src={`https://www.google.com/maps?q=${encodeURIComponent(settings.mapQuery)}&output=embed`}
-              className="h-[560px] w-full"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-            <div className="bg-[#4b0718] p-4 text-center">
-              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.mapQuery)}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full bg-[#d7a84f] px-6 py-3 font-black text-[#4b0718]">
-                Get Direction on Google Maps
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <AyodhyaGuide temples={temples} />
-
-      <LocalServices services={services} settings={settings} />
-
-      <section id="qr" className="bg-[#fff3d8] px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle eyebrow="Smart QR Integration" title="Payments, check‑in, and guest information — instantly" text="A dedicated QR ecosystem makes guest service faster and enables a professional hands-off operational model." />
-          <QRCodePanel settings={settings} />
-        </div>
-      </section>
-
-      <section className="px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle eyebrow="Ratings & Testimonials" title="Guest confidence that updates live" text="Visitors can view premium reviews and leave their own ratings directly from the website." />
-          <TestimonialWidget reviews={reviews} onAdd={addReview} />
-        </div>
-      </section>
-
-      <section id="booking" className="bg-[#2a0611] px-4 py-24 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#f5d891]">Book Now</p>
-            <h2 className="mt-3 font-serif text-5xl font-bold">Reserve your divine stay.</h2>
-            <p className="mt-5 leading-8 text-white/70">Send a booking request directly to the admin dashboard. The seva desk can review and confirm from the robust panel.</p>
-            <div className="mt-8 space-y-3 text-white/75">
-              <p className="flex items-center gap-3"><Phone className="h-5 w-5 text-[#f5d891]" /> {settings.phone}, {settings.secondaryPhone} • Helpline {settings.helpline}</p>
-              <p className="flex items-center gap-3"><MapPin className="h-5 w-5 text-[#f5d891]" /> {settings.address}</p>
-            </div>
-          </div>
-          <form onSubmit={createBooking} className={`rounded-[2rem] border border-[#d7a84f]/25 bg-white p-6 text-[#4b0718] shadow-2xl ${bookingOpen ? 'ring-4 ring-[#d7a84f]/40' : ''}`}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Guest name" className="admin-input" />
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile number" className="admin-input" />
-              <select value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)} className="admin-input">
-                {rooms.map((room) => <option key={room.id}>{room.name}</option>)}
-              </select>
-              <input value={checkIn} onChange={(e) => setCheckIn(e.target.value)} type="date" className="admin-input" />
-              <input value={guests} onChange={(e) => setGuests(e.target.value)} placeholder="Guests" className="admin-input sm:col-span-2" />
-            </div>
-            <button className="mt-6 w-full rounded-full bg-[#d7a84f] px-6 py-4 font-black text-[#4b0718]">Send Booking Request</button>
-          </form>
-        </div>
-      </section>
-
-      {/* ✅ UPDATED: Policies section - Proprietor naam add kiya */}
-      <section id="policies" className="px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle eyebrow="Rules & Policies" title="Terms, cancellation and guest rules" text="Professional policy summary extracted from the public booking listing for guest clarity." />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-[2rem] border border-[#d7a84f]/25 bg-white p-7 shadow-xl shadow-[#4b0718]/10">
-              <div className="mb-4 flex items-center gap-3 font-serif text-2xl font-bold text-[#4b0718]"><FileText className="text-[#b7812d]" /> Terms & Conditions</div>
-              <ul className="space-y-3 text-sm leading-6 text-[#6b5560]">
-                <li><strong className="text-[#4b0718]">Business Name:</strong> Shri Sitaram Seva Trust | <strong className="text-[#4b0718]">Proprietor:</strong> Vijay Prakash Tiwari</li>
-                <li>All guests must bring valid government ID proof at check-in.</li>
-                <li>Guests under 18, single guests / unmarried couples and same-city guests are not allowed as per listed rules.</li>
-                <li>Room / hall capacity is strictly followed; early check-in or late check-out is subject to availability and may be chargeable.</li>
-                <li>Guests cannot bring illegal items. Pets, outside food, alcohol and non-veg food are not allowed.</li>
-                <li>Some amenities including hot water, food, parking, TV and AC may be chargeable or subject to availability / supply conditions.</li>
-              </ul>
-            </div>
-            <div className="rounded-[2rem] border border-[#d7a84f]/25 bg-white p-7 shadow-xl shadow-[#4b0718]/10">
-              <div className="mb-4 flex items-center gap-3 font-serif text-2xl font-bold text-[#4b0718]"><ShieldCheck className="text-[#b7812d]" /> Cancellation & Refund Policy</div>
-              <ul className="space-y-3 text-sm leading-6 text-[#6b5560]">
-                <li>100% room charges apply if cancelled between 1 and 8 days before check-in.</li>
-                <li>0% cancellation charges apply if cancelled between 9 and 365 days before check-in.</li>
-                <li>Convenience fees are strictly non-refundable; taxes may be refunded after deductions where applicable.</li>
-                <li>Submitted cancellation requests are irreversible and refunds are credited to the source in 5–7 banking working days.</li>
-                <li>No-show is non-refundable, including emergencies reported after the check-in date.</li>
-                <li><strong className="text-[#4b0718]">Contact for cancellation:</strong> Vijay Prakash Tiwari — {settings.phone}, {settings.secondaryPhone}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ✅ UPDATED: Footer - Vijay Prakash Tiwari naam add kiya */}
-      <footer className="border-t border-[#d7a84f]/20 bg-[#180209] px-4 py-10 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 md:flex-row md:items-center">
-          <div>
-            <p className="font-serif text-2xl font-bold">{settings.trustName}</p>
-            <p className="mt-1 text-sm text-white/75">Proprietor: <strong className="text-[#f5d891]">Vijay Prakash Tiwari</strong></p>
-            <p className="mt-1 text-sm text-white/55">Official Address: {settings.address}</p>
-            <p className="mt-1 text-sm text-white/55">Mobile: {settings.phone}, {settings.secondaryPhone} • Helpline: {settings.helpline}</p>
-            <p className="mt-2 text-xs text-white/35">© 2025 {settings.trustName}. All rights reserved.</p>
-          </div>
-          <a href={`tel:${settings.phone}`} className="rounded-full border border-[#d7a84f]/35 px-6 py-3 text-[#f5d891]">Call Seva Desk</a>
-        </div>
-      </footer>
-      <FloatingActions settings={settings} />
-      <InstallPrompt />
-    </div>
-  )
-}
+      <section id
