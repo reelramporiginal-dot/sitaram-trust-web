@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://shrisitaramsevatrust.com/</loc>
+    <lastmod>2026-09-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://shrisitaramsevatrust.com/images/hero-ram-mandir-ai.png</image:loc>
+      <image:title>Shri Sitaram Seva Trust hotel building near Ram Mandir, Ayodhya</image:title>
+      <image:caption>Hotel near Ram Mandir and Hanuman Garhi, Ayodhya Dham</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shrisitaramsevatrust.com/images/yatradham/property-1.jpg</image:loc>
+      <image:title>Shri Sitaram Seva Trust property view, Ayodhya</image:title>
+    </image:image>
   </url>
 </urlset>
-
