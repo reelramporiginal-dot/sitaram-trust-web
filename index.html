@@ -20,7 +20,23 @@
     <meta name="geo.placename" content="Ayodhya" />
     <meta name="geo.position" content="26.7995;82.2020" />
     <meta name="ICBM" content="26.7995, 82.2020" />
+    <meta name="rating" content="General" />
+    <meta name="distribution" content="global" />
+    <meta name="revisit-after" content="3 days" />
     <link rel="canonical" href="https://shrisitaramsevatrust.com/" />
+    <link rel="alternate" hreflang="en-in" href="https://shrisitaramsevatrust.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://shrisitaramsevatrust.com/" />
+
+    <!-- ============================================
+         PERFORMANCE: connect early to third-party
+         origins used on the page (YouTube embeds,
+         Google Fonts, Supabase API) so those requests
+         don't cost extra round-trips later
+         ============================================ -->
+    <link rel="preconnect" href="https://i.ytimg.com" />
+    <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+    <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+    <link rel="dns-prefetch" href="https://maps.google.com" />
 
     <!-- ============================================
          OPEN GRAPH (Facebook, WhatsApp, Instagram share cards)
@@ -96,11 +112,48 @@
       ],
       "petsAllowed": false,
       "smokingAllowed": false,
+      "currenciesAccepted": "INR",
+      "paymentAccepted": "Cash, UPI",
+      "areaServed": { "@type": "City", "name": "Ayodhya" },
       "nearbyAttraction": [
-        { "@type": "TouristAttraction", "name": "Shri Ram Janmabhoomi Temple" },
-        { "@type": "TouristAttraction", "name": "Hanuman Garhi" },
-        { "@type": "TouristAttraction", "name": "Kanak Bhawan Temple" }
+        { "@type": "TouristAttraction", "name": "Shri Ram Janmabhoomi Temple", "description": "Approx. 1.7 km away" },
+        { "@type": "TouristAttraction", "name": "Hanuman Garhi", "description": "Approx. 1.3 km away" },
+        { "@type": "TouristAttraction", "name": "Kanak Bhawan Temple" },
+        { "@type": "TouristAttraction", "name": "Saryu Ghat" },
+        { "@type": "TrainStation", "name": "Ayodhya Dham Junction", "description": "Approx. 1.8 km away" },
+        { "@type": "Airport", "name": "Maharishi Valmiki International Airport, Ayodhya", "description": "Approx. 10.5 km away" }
+      ],
+      "makesOffer": [
+        { "@type": "Offer", "name": "2 Bed A.C. Room", "priceCurrency": "INR", "price": "1299", "availability": "https://schema.org/InStock" },
+        { "@type": "Offer", "name": "3 Bed A.C. Room", "priceCurrency": "INR", "price": "1499", "availability": "https://schema.org/InStock" },
+        { "@type": "Offer", "name": "3 Bed Non-A.C. Room", "priceCurrency": "INR", "price": "1099", "availability": "https://schema.org/InStock" },
+        { "@type": "Offer", "name": "4 Bed A.C. Room", "priceCurrency": "INR", "price": "1799", "availability": "https://schema.org/InStock" },
+        { "@type": "Offer", "name": "5 Bed A.C. Room", "priceCurrency": "INR", "price": "1999", "availability": "https://schema.org/InStock" }
       ]
+    }
+    </script>
+
+    <!-- BreadcrumbList schema — reinforces the site name shown in Google's URL/breadcrumb row under the result -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://shrisitaramsevatrust.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Rooms & Booking", "item": "https://shrisitaramsevatrust.com/#rooms" },
+        { "@type": "ListItem", "position": 3, "name": "Ayodhya Darshan Guide", "item": "https://shrisitaramsevatrust.com/#guide" }
+      ]
+    }
+    </script>
+
+    <!-- WebSite schema — ties the brand name to the domain for Google's Knowledge Panel / sitelinks search box eligibility -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Shri Sitaram Seva Trust",
+      "url": "https://shrisitaramsevatrust.com/",
+      "inLanguage": "en-IN"
     }
     </script>
 
