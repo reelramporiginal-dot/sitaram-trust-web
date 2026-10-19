@@ -1,6 +1,11 @@
 {
+  "functions": {
+    "api/post-facebook.js": {
+      "includeFiles": "data/**"
+    }
+  },
   "rewrites": [
-    { "source": "/((?!assets/|images/|videos/|favicon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|posters/|assets/|images/|videos/|favicon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
