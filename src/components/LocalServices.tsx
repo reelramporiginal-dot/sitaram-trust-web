@@ -1,5 +1,6 @@
 import { ArrowRight, CheckCircle2, Utensils, Car, Map } from 'lucide-react'
 import type { LocalService, Settings } from '../types'
+import { trackEvent } from '../lib/metaPixel'
 
 const icons = [Utensils, Car, Map]
 
@@ -39,7 +40,7 @@ export function LocalServices({ services, settings }: { services: LocalService[]
                       <div key={item} className="flex items-start gap-2 text-sm font-semibold text-[#4b0718]"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#b7812d]" /> {item}</div>
                     ))}
                   </div>
-                  <a href={`https://wa.me/${whatsapp}?text=${message}`} target="_blank" rel="noreferrer" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4b0718] px-5 py-3 font-bold text-white transition hover:bg-[#7d1128]">
+                  <a href={`https://wa.me/${whatsapp}?text=${message}`} onClick={() => trackEvent('Contact', { method: 'whatsapp', content_name: service.title })} target="_blank" rel="noreferrer" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4b0718] px-5 py-3 font-bold text-white transition hover:bg-[#7d1128]">
                     {service.cta} <ArrowRight className="h-4 w-4" />
                   </a>
                 </div>
