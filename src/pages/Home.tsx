@@ -12,6 +12,7 @@ import { RoomCard } from '../components/RoomCard'
 import { TestimonialWidget } from '../components/TestimonialWidget'
 import { VideoPopup } from '../components/VideoPopup'
 import { storage } from '../lib/storage'
+import { trackEvent } from '../lib/metaPixel'
 import { isSupabaseConfigured, loadSiteDataFromSupabase, saveSiteDataToSupabase, supabase } from '../lib/supabase'
 import type { Booking, LocalService, Review, Room, Settings, Temple, VideoItem } from '../types'
 
@@ -229,6 +230,9 @@ export function Home() {
 
     // 3. ✅ NEW: Send WhatsApp Notification to Reception
     await sendWhatsAppNotification(newBooking)
+
+    // Meta Pixel: booking request counts as a Lead
+    trackEvent('Lead', { content_name: newBooking.room, content_category: 'Room Booking' })
 
     // 4. Clear form
     setGuestName('')
@@ -497,7 +501,7 @@ export function Home() {
             <p className="mt-1 text-sm text-white/55">Mobile: {settings.phone}, {settings.secondaryPhone} • Helpline: {settings.helpline}</p>
             <p className="mt-2 text-xs text-white/35">© 2025 {settings.trustName}. All rights reserved.</p>
           </div>
-          <a href={`tel:${settings.phone}`} className="rounded-full border border-[#d7a84f]/35 px-6 py-3 text-[#f5d891]">Call Seva Desk</a>
+          <a href={`tel:${settings.phone}`} onClick={() => trackEvent('Contact', { method: 'call' })} className="rounded-full border border-[#d7a84f]/35 px-6 py-3 text-[#f5d891]">Call Seva Desk</a>
         </div>
       </footer>
       <FloatingActions settings={settings} />
