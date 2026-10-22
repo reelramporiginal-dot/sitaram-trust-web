@@ -1,5 +1,6 @@
 import { Phone, MessageCircle } from 'lucide-react'
 import type { Settings } from '../types'
+import { trackEvent } from '../lib/metaPixel'
 
 export function FloatingActions({ settings }: { settings: Settings }) {
   const phone = settings.phone.replace(/\s+/g, '') || '9918310009'
@@ -11,6 +12,7 @@ export function FloatingActions({ settings }: { settings: Settings }) {
     <>
       <a
         href={`tel:${phone}`}
+        onClick={() => trackEvent('Contact', { method: 'call' })}
         aria-label="Call Shri Sitaram Seva Trust"
         className="fixed bottom-5 left-4 z-[60] grid h-14 w-14 place-items-center rounded-full border border-[#d7a84f]/40 bg-[#4b0718] text-[#f5d891] shadow-2xl shadow-black/25 transition hover:scale-105 sm:left-6"
       >
@@ -18,6 +20,7 @@ export function FloatingActions({ settings }: { settings: Settings }) {
       </a>
       <a
         href={`https://wa.me/${whatsapp}?text=${message}`}
+        onClick={() => trackEvent('Contact', { method: 'whatsapp' })}
         target="_blank"
         rel="noreferrer"
         aria-label="WhatsApp Shri Sitaram Seva Trust"
