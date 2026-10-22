@@ -3,6 +3,7 @@ import { Menu, Phone, X } from 'lucide-react'
 import { useState } from 'react'
 import { LogoMark } from './LogoMark'
 import type { Settings } from '../types'
+import { trackEvent } from '../lib/metaPixel'
 
 const links = [
   { href: '/', label: 'Home' },
@@ -53,7 +54,7 @@ export function Navbar({ onBook, settings }: { onBook: () => void; settings: Set
                 {link.label}
               </a>
             ))}
-            <a href={`tel:${settings.phone}`} className="rounded-2xl border border-[#d7a84f]/25 bg-white/10 p-3 text-sm font-semibold text-[#f5d891]">
+            <a href={`tel:${settings.phone}`} onClick={() => trackEvent('Contact', { method: 'call' })} className="rounded-2xl border border-[#d7a84f]/25 bg-white/10 p-3 text-sm font-semibold text-[#f5d891]">
               Mobile: {settings.phone}, {settings.secondaryPhone}<br />Helpline: {settings.helpline}
             </a>
             <button onClick={() => { setOpen(false); onBook() }} style={{ background: settings.accentColor, color: settings.primaryColor }} className="rounded-full px-5 py-3 font-bold">
