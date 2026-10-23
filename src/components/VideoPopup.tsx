@@ -13,7 +13,17 @@ export function VideoPopup({ youtubeUrl, videoSrc, poster, temples, source = 'st
   const popupKey = `sst-video-popup-seen-${source}-${youtubeUrl || videoSrc || 'default'}`
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setOpen(true), 900)
+    // Ad se aaye visitor ko popup nahi dikhana (fbclid / utm_source link mein hota hai)
+    const params = new URLSearchParams(window.location.search)
+    const fromAd = params.has('fbclid') || params.has('utm_source')
+    let seen = false
+    try { seen = localStorage.getItem(popupKey) === '1' } catch { /* ignore */ }
+    if (seen || fromAd) return
+    // Sirf ek baar, 8 second baad
+    const timer = window.setTimeout(() => {
+      setOpen(true)
+      try { localStorage.setItem(popupKey, '1') } catch { /* ignore */ }
+    }, 8000)
     return () => window.clearTimeout(timer)
   }, [popupKey])
 
