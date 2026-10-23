@@ -35,6 +35,17 @@ async function graph(url, body) {
 
 const isRecent = (iso) => Date.now() - new Date(iso).getTime() < 20 * 3600 * 1000;
 
+// Agar Vercel me galti se user token ho, to usse Page ka token nikaal leta hai (Page token ho to wahi rehta hai)
+async function resolvePageToken({ ver, pageId, token }) {
+  try {
+    const r = await graph(`https://graph.facebook.com/${ver}/${pageId}?fields=access_token&access_token=${token}`);
+    if (r.ok && r.j.access_token) return r.j.access_token;
+  } catch (e) {
+    console.warn('Page token resolve fail, original token use hoga:', e.message);
+  }
+  return token;
+}
+
 // ---------------- Facebook ----------------
 async function postToFacebook({ ver, pageId, token, post, imageUrl, caption, force }) {
   if (!force) {
@@ -47,7 +58,16 @@ async function postToFacebook({ ver, pageId, token, post, imageUrl, caption, for
     }
   }
   const r = await graph(`https://graph.facebook.com/${ver}/${pageId}/photos`, { url: imageUrl, caption, access_token: token });
-  if (!r.ok) return { ok: false, error: r.j.error || r.j };
+  if (!r.ok) {
+    const code = r.j.error?.code;
+    const hint =
+      code === 200
+        ? 'Token me pages_manage_posts nahi hai ya ye Page token nahi hai. debug_token se type aur scopes check karo.'
+        : code === 190
+          ? 'Token invalid/expire. Naya Page token banake Vercel me daalo.'
+          : undefined;
+    return { ok: false, error: r.j.error || r.j, hint };
+  }
   return { ok: true, id: r.j.post_id || r.j.id };
 }
 
@@ -69,11 +89,21 @@ async function postToInstagram({ ver, pageId, token, post, imageUrl, caption, fo
     }
   }
 
+  let username;
+  try {
+    const u = await graph(`https://graph.facebook.com/${ver}/${igId}?fields=username&access_token=${token}`);
+    username = u.j.username;
+  } catch (e) {
+    /* sirf info ke liye */
+  }
+
   if (!force) {
     try {
-      const r = await graph(`https://graph.facebook.com/${ver}/${igId}/media?fields=caption,timestamp&limit=10&access_token=${token}`);
+      const r = await graph(`https://graph.facebook.com/${ver}/${igId}/media?fields=caption,timestamp,permalink&limit=10&access_token=${token}`);
       const dup = (r.j.data || []).find((m) => (m.caption || '').startsWith(post.title) && isRecent(m.timestamp));
-      if (dup) return { ok: true, skipped: true, reason: 'Aaj ka Instagram post already ho chuka hai' };
+      if (dup) {
+        return { ok: true, skipped: true, reason: 'Aaj ka Instagram post already ho chuka hai', username, permalink: dup.permalink, postedAt: dup.timestamp };
+      }
     } catch (e) {
       console.warn('IG duplicate check fail:', e.message);
     }
@@ -87,19 +117,33 @@ async function postToInstagram({ ver, pageId, token, post, imageUrl, caption, fo
   });
   if (!c.ok) return { ok: false, step: 'create_container', error: c.j.error || c.j };
 
-  // 2) container ready hone ka intezaar
+  // 2) container ready hone ka intezaar (error aaye to turant bahar, wajah dikhao)
+  let containerStatus = 'UNKNOWN';
   for (let i = 0; i < 8; i++) {
-    const s = await graph(`https://graph.facebook.com/${ver}/${c.j.id}?fields=status_code&access_token=${token}`);
-    const code = s.j.status_code;
-    if (code === 'FINISHED') break;
-    if (code === 'ERROR' || code === 'EXPIRED') return { ok: false, step: 'container_status', error: s.j };
+    const s = await graph(`https://graph.facebook.com/${ver}/${c.j.id}?fields=status_code,status&access_token=${token}`);
+    if (!s.ok) return { ok: false, step: 'container_status', error: s.j.error || s.j };
+    containerStatus = s.j.status_code || containerStatus;
+    if (containerStatus === 'FINISHED') break;
+    if (containerStatus === 'ERROR' || containerStatus === 'EXPIRED') {
+      return { ok: false, step: 'container_status', containerStatus, error: s.j.status || s.j };
+    }
     await sleep(1500);
+  }
+  if (containerStatus !== 'FINISHED') {
+    return { ok: false, step: 'container_not_ready', containerStatus, error: 'Instagram ne image 12 second me process nahi ki' };
   }
 
   // 3) publish
   const p = await graph(`https://graph.facebook.com/${ver}/${igId}/media_publish`, { creation_id: c.j.id, access_token: token });
   if (!p.ok) return { ok: false, step: 'publish', error: p.j.error || p.j };
-  return { ok: true, id: p.j.id };
+  let permalink;
+  try {
+    const m = await graph(`https://graph.facebook.com/${ver}/${p.j.id}?fields=permalink&access_token=${token}`);
+    permalink = m.j.permalink;
+  } catch (e) {
+    /* sirf info ke liye */
+  }
+  return { ok: true, id: p.j.id, username, permalink };
 }
 
 // ---------------- Handler ----------------
@@ -138,7 +182,8 @@ export default async function handler(req, res) {
     }
 
     const force = !!req.query?.force;
-    const args = { ver, pageId, token, post, imageUrl, caption, force };
+    const pageToken = await resolvePageToken({ ver, pageId, token });
+    const args = { ver, pageId, token: pageToken, post, imageUrl, caption, force };
 
     // Dono alag alag chalte hain: ek fail ho to dusra phir bhi post hota hai
     const facebook = await postToFacebook(args).catch((e) => ({ ok: false, error: e.message }));
