@@ -12,29 +12,31 @@ export function InstallPrompt() {
   const [message, setMessage] = useState('Add this luxury booking app to your home screen for faster access.')
 
   useEffect(() => {
+    // Agar visitor pehle band kar chuka hai ya ad se aaya hai to kabhi mat dikhao
+    let dismissed = false
+    try { dismissed = localStorage.getItem('sst-install-dismissed') === '1' } catch { /* ignore */ }
+    const params = new URLSearchParams(window.location.search)
+    const fromAd = params.has('fbclid') || params.has('utm_source')
+    if (dismissed || fromAd) return
+
+    let showTimer: number | undefined
     const handler = (e: Event) => {
       e.preventDefault()
       setEvent(e as BeforeInstallPromptEvent)
-      setVisible(true)
       setMessage('Install this app for one-tap booking, calling and Ayodhya guide access.')
+      // 30 second baad hi dikhao, turant nahi
+      showTimer = window.setTimeout(() => setVisible(true), 30000)
     }
     window.addEventListener('beforeinstallprompt', handler)
-    const fallback = window.setTimeout(() => {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      if (isMobile && !isStandalone) {
-        setVisible(true)
-        if (!event) setMessage('Tap browser menu ⋮ and choose “Add to Home screen” if install prompt does not open automatically.')
-      }
-    }, 2500)
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
-      window.clearTimeout(fallback)
+      if (showTimer) window.clearTimeout(showTimer)
     }
   }, [])
 
   const close = () => {
     setVisible(false)
+    try { localStorage.setItem('sst-install-dismissed', '1') } catch { /* ignore */ }
   }
 
   const install = async () => {
