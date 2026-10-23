@@ -508,6 +508,10 @@ export function Home() {
           </div>
           <a href={`tel:${settings.phone}`} onClick={() => trackEvent('Contact', { method: 'call' })} className="rounded-full border border-[#d7a84f]/35 px-6 py-3 text-[#f5d891]">Call Seva Desk</a>
         </div>
+        <p className="mx-auto mt-6 max-w-7xl text-center text-[11px] text-white/30">
+          Powered by{' '}
+          <a href="https://safarbuddy-v2-two.vercel.app/" target="_blank" rel="noopener" className="text-white/45 underline-offset-2 hover:text-white/70 hover:underline">Chalfirr Travel</a>
+        </p>
       </footer>
       <FloatingActions settings={settings} />
       <InstallPrompt />
