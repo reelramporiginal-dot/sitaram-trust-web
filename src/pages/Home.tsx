@@ -141,6 +141,7 @@ export function Home() {
   const [checkIn, setCheckIn] = useState('')
   const [guests, setGuests] = useState('2')
   const [promoTrigger, setPromoTrigger] = useState(0)
+  const [formError, setFormError] = useState('')
   const { scrollY } = useScroll()
   const heroY = useTransform(scrollY, [0, 600], [0, 180])
   const heroScale = useTransform(scrollY, [0, 600], [1, 1.12])
@@ -208,7 +209,13 @@ export function Home() {
   // ============================================
   const createBooking = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!guestName || !phone || !checkIn) return
+    if (!guestName.trim()) { setFormError('Kripya apna naam likhein.'); return }
+    if (phone.replace(/\D/g, '').length < 10) { setFormError('Kripya sahi 10 digit ka mobile number likhein.'); return }
+    if (!checkIn) { setFormError('Kripya check-in ki date chunein.'); return }
+    setFormError('')
+
+    // Meta Pixel: Lead turant fire karo (network calls se pehle), taaki track miss na ho
+    trackEvent('Lead', { content_name: selectedRoom, content_category: 'Room Booking' })
 
     const newBooking: Booking = {
       id: `BKG-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -230,9 +237,6 @@ export function Home() {
 
     // 3. ✅ NEW: Send WhatsApp Notification to Reception
     await sendWhatsAppNotification(newBooking)
-
-    // Meta Pixel: booking request counts as a Lead
-    trackEvent('Lead', { content_name: newBooking.room, content_category: 'Room Booking' })
 
     // 4. Clear form
     setGuestName('')
@@ -454,6 +458,7 @@ export function Home() {
               <input value={checkIn} onChange={(e) => setCheckIn(e.target.value)} type="date" className="admin-input" />
               <input value={guests} onChange={(e) => setGuests(e.target.value)} placeholder="Guests" className="admin-input sm:col-span-2" />
             </div>
+            {formError && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{formError}</p>}
             <button className="mt-6 w-full rounded-full bg-[#d7a84f] px-6 py-4 font-black text-[#4b0718]">Send Booking Request</button>
           </form>
         </div>
