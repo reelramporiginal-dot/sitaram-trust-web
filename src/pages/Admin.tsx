@@ -149,6 +149,7 @@ export function Admin() {
             <p className="mt-1 text-xs text-white/55 lg:hidden">Mobile app style dashboard • {tabs.find((tab) => tab.id === activeTab)?.label}</p>
           </div>
           <div className="flex gap-3">
+            <a href="/admin/payments" className="flex items-center gap-2 rounded-full border border-[#d7a84f]/60 px-5 py-3 font-bold text-[#f5d891]">Payments</a>
             <button onClick={persistAll} className="flex items-center gap-2 rounded-full bg-[#d7a84f] px-5 py-3 font-bold text-[#4b0718]"><Save className="h-4 w-4" /> Save</button>
             <button onClick={logout} className="rounded-full border border-white/20 p-3 text-white"><LogOut className="h-5 w-5" /></button>
           </div>
