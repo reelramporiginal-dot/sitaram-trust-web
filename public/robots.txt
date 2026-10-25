@@ -2,6 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /login
+Disallow: /pay
 
 Sitemap: https://shrisitaramsevatrust.com/sitemap.xml
-
