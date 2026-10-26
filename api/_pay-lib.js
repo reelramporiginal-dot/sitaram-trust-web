@@ -20,7 +20,7 @@ export const inr = (paise) =>
 export const httpError = (status, message, details) => Object.assign(new Error(message), { status, details });
 export const newToken = () => crypto.randomBytes(16).toString('base64url');
 export const isEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 254;
-const safeEq = (a, b) => {
+export const safeEq = (a, b) => {
   const x = Buffer.from(String(a));
   const y = Buffer.from(String(b));
   return x.length === y.length && crypto.timingSafeEqual(x, y);
@@ -94,15 +94,19 @@ export function verifyWebhookSignature(rawBody, signature) {
 }
 
 // ---------- Email (Resend) ----------
-export async function sendMail({ to, subject, html, text }) {
+export async function sendMail({ to, subject, html, text, headers, replyTo, from: fromOverride }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, error: 'RESEND_API_KEY set nahi hai' };
-  const from = process.env.MAIL_FROM || `${HOTEL.nameEn} <onboarding@resend.dev>`;
-  const reply = process.env.BOOKING_NOTIFY_EMAIL || 'shrisitaram6151@gmail.com';
+  if (!process.env.MAIL_FROM && process.env.VERCEL_ENV === 'production') {
+    console.warn('MAIL_FROM set nahi hai: onboarding@resend.dev se bhej rahe hain. Domain verify karke MAIL_FROM set karein.');
+  }
+  const from = fromOverride || process.env.MAIL_FROM || `${HOTEL.nameEn} <onboarding@resend.dev>`;
+  const reply = replyTo || process.env.BOOKING_NOTIFY_EMAIL || 'shrisitaram6151@gmail.com';
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html, text, reply_to: reply }),
+    body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html, text, reply_to: reply, ...(headers ? { headers } : {}) }),
+    signal: AbortSignal.timeout(15000),
   });
   const j = await r.json().catch(() => ({}));
   return r.ok ? { ok: true, id: j.id } : { ok: false, error: j.message || `Resend error ${r.status}` };
@@ -111,12 +115,12 @@ export async function sendMail({ to, subject, html, text }) {
 // ---------- Invoice ----------
 const METHOD = { upi: 'UPI', card: 'Card', netbanking: 'Net Banking', wallet: 'Wallet', emi: 'EMI', paylater: 'Pay Later' };
 export const methodLabel = (m) => METHOD[m] || m || '-';
-const fmtDate = (iso) =>
+export const fmtDate = (iso) =>
   new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-const C = { maroon: '#4b0718', deep: '#2a0611', gold: '#d7a84f', light: '#f5d891', cream: '#fbf4ea', text: '#3b2a30', muted: '#7a6a70', line: '#eadfce', green: '#1f7a3d', mint: '#eaf6ee' };
-const SERIF = "Georgia,'Times New Roman',serif";
-const SANS = "'Noto Sans Devanagari','Mangal',Arial,Helvetica,sans-serif";
+export const C = { maroon: '#4b0718', deep: '#2a0611', gold: '#d7a84f', light: '#f5d891', cream: '#fbf4ea', text: '#3b2a30', muted: '#7a6a70', line: '#eadfce', green: '#1f7a3d', mint: '#eaf6ee' };
+export const SERIF = "Georgia,'Times New Roman',serif";
+export const SANS = "'Noto Sans Devanagari','Mangal',Arial,Helvetica,sans-serif";
 export const logoUrl = () => process.env.INVOICE_LOGO_URL || `${siteUrl()}/images/trust-logo.png`;
 
 // Indian numbering: 1,50,050 -> "One Lakh Fifty Thousand and Fifty"
@@ -148,7 +152,7 @@ const kv = (k, v, strong = true) =>
   v ? `<tr><td style="padding:3px 12px 3px 0;font-family:${SANS};font-size:12px;color:${C.muted};white-space:nowrap;">${esc(k)}</td><td style="padding:3px 0;font-family:${SANS};font-size:13px;color:${C.text};${strong ? 'font-weight:bold;' : ''}">${esc(v)}</td></tr>` : '';
 
 // Poora invoice "kagaz" (email aur print page dono me wahi)
-function invoicePaper(p) {
+export function invoicePaper(p) {
   const balance = p.total_amount_paise && p.total_amount_paise > p.amount_paise ? p.total_amount_paise - p.amount_paise : 0;
   const main = p.description || p.room || 'Booking payment';
   const sub = [p.description ? p.room : '', p.check_in ? `Check-in: ${p.check_in}` : '', p.guests ? `Guests: ${p.guests}` : ''].filter(Boolean).join('  ·  ');
@@ -216,6 +220,8 @@ function invoicePaper(p) {
       <td valign="top" width="52%" style="padding:10px 14px 0 0;font-family:${SANS};font-size:11px;color:${C.muted};line-height:1.6;"><b style="color:${C.text};">Amount in words</b><br>${esc(amountInWords(p.amount_paise))}</td>
       <td valign="top" width="48%">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:${SANS};font-size:13px;">
+          ${p.subtotal_paise ? `<tr><td style="padding:4px 0;color:${C.muted};">Room charges</td><td align="right" style="padding:4px 0;color:${C.text};">${esc(inr(p.subtotal_paise))}</td></tr>` : ''}
+          ${p.tax_paise ? `<tr><td style="padding:4px 0;color:${C.muted};">Tax</td><td align="right" style="padding:4px 0;color:${C.text};">${esc(inr(p.tax_paise))}</td></tr>` : ''}
           ${p.total_amount_paise ? `<tr><td style="padding:6px 0;color:${C.muted};">Total booking amount</td><td align="right" style="padding:6px 0;color:${C.text};">${esc(inr(p.total_amount_paise))}</td></tr>` : ''}
           <tr><td style="padding:10px 12px;background:${C.cream};border-top:2px solid ${C.maroon};font-weight:bold;color:${C.maroon};">Amount Paid</td><td align="right" style="padding:10px 12px;background:${C.cream};border-top:2px solid ${C.maroon};font-family:${SERIF};font-size:18px;font-weight:bold;color:${C.maroon};white-space:nowrap;">${esc(inr(p.amount_paise))}</td></tr>
           ${balance ? `<tr><td style="padding:8px 0;color:${C.muted};">Balance payable at hotel</td><td align="right" style="padding:8px 0;font-weight:bold;color:${C.text};">${esc(inr(balance))}</td></tr>` : ''}
@@ -249,7 +255,7 @@ function invoicePaper(p) {
 </table>`;
 }
 
-export const invoiceUrl = (p) => `${siteUrl()}/api/pay-invoice?t=${encodeURIComponent(p.token)}`;
+export const invoiceUrl = (p) => p.invoice_url || `${siteUrl()}/api/pay-invoice?t=${encodeURIComponent(p.token)}`;
 
 export function invoiceEmail(p) {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice ${esc(p.invoice_no)}</title></head>
