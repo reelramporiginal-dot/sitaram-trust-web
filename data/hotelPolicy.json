@@ -1,0 +1,12 @@
+{
+  "_help": "Owner edits this file. Used by the website (policy pages, booking modal) and by emails. Change numbers here, not in code.",
+  "refundTiers": [
+    { "daysBeforeCheckInMin": 7, "refundPercent": 100 },
+    { "daysBeforeCheckInMin": 3, "refundPercent": 50 },
+    { "daysBeforeCheckInMin": 0, "refundPercent": 0 }
+  ],
+  "refundBasis": "advance_or_paid_amount",
+  "refundProcessingDays": "5-7",
+  "idRequirementHi": "Check-in ke samay sabhi guests ke paas valid photo ID (jaise Aadhaar) hona zaroori hai.",
+  "marketingConsentText": "Mujhe offers aur festival wishes email par bhejein (kabhi bhi unsubscribe kar sakte hain)."
+}
