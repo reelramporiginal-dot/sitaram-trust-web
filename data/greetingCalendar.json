@@ -1,0 +1,13 @@
+{
+  "_help": "Owner fills REAL festival dates (YYYY-MM-DD, IST). Set active:true to send. Festival dates are NEVER hard-coded from memory. Sent only to guests who paid at least once, ticked the marketing box, and have not unsubscribed.",
+  "greetings": [
+    {
+      "date": "2099-01-01",
+      "active": false,
+      "title_hi": "(example) Shubh Tyohar",
+      "message_hi": "(example) Shri Sitaram Seva Trust parivar ki taraf se aapko aur aapke parivar ko hardik shubhkamnayein. Jai Shri Ram!",
+      "title_en": "(example) Warm wishes",
+      "message_en": "(example) Warm wishes from Shri Sitaram Seva Trust to you and your family. Jai Shri Ram!"
+    }
+  ]
+}
