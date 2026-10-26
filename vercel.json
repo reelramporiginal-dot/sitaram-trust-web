@@ -3,15 +3,84 @@
     "api/post-facebook.js": {
       "includeFiles": "data/**",
       "maxDuration": 60
+    },
+    "api/cron.js": {
+      "includeFiles": "data/**",
+      "maxDuration": 60
+    },
+    "api/booking.js": {
+      "includeFiles": "data/**",
+      "maxDuration": 30
+    },
+    "api/pay-webhook.js": {
+      "includeFiles": "data/**",
+      "maxDuration": 30
+    },
+    "api/pay-admin.js": {
+      "includeFiles": "data/**",
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api/booking-quote",
+      "destination": "/api/booking?op=quote"
+    },
+    {
+      "source": "/api/booking-create",
+      "destination": "/api/booking?op=create"
+    },
+    {
+      "source": "/api/booking-retry",
+      "destination": "/api/booking?op=retry"
+    },
+    {
+      "source": "/api/booking-status",
+      "destination": "/api/booking?op=status"
+    },
+    {
+      "source": "/api/booking-invoice",
+      "destination": "/api/booking?op=invoice"
+    },
+    {
+      "source": "/api/cron/:job",
+      "destination": "/api/cron?job=:job"
+    },
     {
       "source": "/((?!api/|posters/|assets/|images/|videos/|favicon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfree.com https://challenges.cloudflare.com https://www.googletagmanager.com https://connect.facebook.net https://checkout.razorpay.com; frame-src https://sdk.cashfree.com https://*.cashfree.com https://challenges.cloudflare.com https://api.razorpay.com https://www.google.com https://www.youtube.com; connect-src 'self' https://*.supabase.co https://*.cashfree.com https://api.web3forms.com https://api.callmebot.com https://www.facebook.com https://www.google-analytics.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'self'"
+        }
+      ]
+    },
     {
       "source": "/images/(.*)",
       "headers": [
