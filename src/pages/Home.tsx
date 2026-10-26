@@ -8,6 +8,7 @@ import { InstallPrompt } from '../components/InstallPrompt'
 import { LocalServices } from '../components/LocalServices'
 import { OTTPlayer } from '../components/OTTPlayer'
 import { QRCodePanel } from '../components/QRCodePanel'
+import { BookPayModal } from '../components/BookPayModal'
 import { RoomCard } from '../components/RoomCard'
 import { TestimonialWidget } from '../components/TestimonialWidget'
 import { VideoPopup } from '../components/VideoPopup'
@@ -136,6 +137,7 @@ export function Home() {
   const [reviews, setReviews] = useState<Review[]>(() => storage.getReviews())
   const [selectedRoom, setSelectedRoom] = useState('2 Bed AC Room')
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [payRoom, setPayRoom] = useState<Room | null>(null)
   const [guestName, setGuestName] = useState('')
   const [phone, setPhone] = useState('')
   const [checkIn, setCheckIn] = useState('')
@@ -388,7 +390,7 @@ export function Home() {
           <div className="flex items-center gap-3"><MapPin className="h-8 w-8 text-[#b7812d]" /><div><p className="font-bold text-[#4b0718]">Near Attractions</p><p className="text-sm text-[#6b5560]">Ram Mandir 1.7 km • Hanuman Garhi 1.3 km</p></div></div>
         </div>
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-3">
-          {rooms.map((room) => <RoomCard key={room.id} room={room} onBook={openBooking} />)}
+          {rooms.map((room) => <RoomCard key={room.id} room={room} onPay={setPayRoom} whatsapp={settings.whatsapp} phone={settings.phone} />)}
         </div>
       </section>
 
@@ -506,10 +508,17 @@ export function Home() {
             <p className="mt-1 text-sm text-white/55">Official Address: {settings.address}</p>
             <p className="mt-1 text-sm text-white/55">Mobile: {settings.phone}, {settings.secondaryPhone} • Helpline: {settings.helpline}</p>
             <p className="mt-2 text-xs text-white/35">© 2025 {settings.trustName}. All rights reserved.</p>
+            <nav aria-label="Policies" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/60">
+              <a href="/privacy" className="underline-offset-2 hover:underline">Privacy Policy</a>
+              <a href="/terms" className="underline-offset-2 hover:underline">Terms</a>
+              <a href="/refund-policy" className="underline-offset-2 hover:underline">Cancellation &amp; Refund</a>
+              <a href="/contact" className="underline-offset-2 hover:underline">Contact</a>
+            </nav>
           </div>
           <a href={`tel:${settings.phone}`} onClick={() => trackEvent('Contact', { method: 'call' })} className="rounded-full border border-[#d7a84f]/35 px-6 py-3 text-[#f5d891]">Call Seva Desk</a>
         </div>
       </footer>
+      {payRoom && <BookPayModal room={payRoom} onClose={() => setPayRoom(null)} />}
       <FloatingActions settings={settings} />
       <InstallPrompt />
     </div>
