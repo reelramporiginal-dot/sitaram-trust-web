@@ -3,6 +3,10 @@
 // Refund tiers / consent wording live in data/hotelPolicy.json (the server emails read the same file).
 import policy from '../../data/hotelPolicy.json'
 
+// Online payment switch. Keep OFF (default) until the Cashfree walkthrough has passed.
+// OFF: "Book & Pay" opens the old booking form and the enquiry goes to the admin exactly as before.
+export const ONLINE_PAYMENTS_ENABLED = import.meta.env.VITE_ONLINE_PAYMENTS === 'true'
+
 export const HOTEL_NAME_EN = 'Shri Sitaram Seva Trust'
 export const HOTEL_NAME_HI = 'श्री सीताराम सेवा ट्रस्ट'
 export const HOTEL_ADDRESS = 'Luvkushnagar, Ramghat, Ayodhya Dham, Uttar Pradesh 224123'
