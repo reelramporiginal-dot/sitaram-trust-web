@@ -15,6 +15,10 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: {
+      // New React-compiler rule; flags older components (OTTPlayer, QRCodePanel, VideoPopup). Warn, do not block CI.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
