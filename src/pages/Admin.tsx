@@ -70,7 +70,22 @@ export function Admin() {
     storage.setBookings(bookings)
     storage.setReviews(reviews)
     const result = await saveSiteDataToSupabase({ settings, rooms, videos, temples, services, bookings, reviews })
-    setSaved(result.ok ? 'Published successfully. Users will see changes automatically within a few seconds.' : `Not published for users: ${result.reason}`)
+    let inventoryNote = ''
+    if (result.ok && isSupabaseConfigured) {
+      // keep the online-booking inventory (price, units) in step with the Rooms tab
+      try {
+        const { data } = await supabase.auth.getSession()
+        const res = await fetch('/api/pay-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token || ''}` },
+          body: JSON.stringify({ action: 'sync_inventory' }),
+        })
+        inventoryNote = res.ok ? ' Online booking inventory synced.' : ' (Online booking inventory sync failed: Admin > Bookings me "Rooms sync karo" dabayein.)'
+      } catch {
+        inventoryNote = ' (Online booking inventory sync failed.)'
+      }
+    }
+    setSaved(result.ok ? `Published successfully. Users will see changes automatically within a few seconds.${inventoryNote}` : `Not published for users: ${result.reason}`)
     setBackendStatus(result.ok ? 'Supabase publish successful.' : `Supabase publish failed: ${result.reason}`)
     setTimeout(() => setSaved(''), 8000)
   }
@@ -149,7 +164,8 @@ export function Admin() {
             <p className="mt-1 text-xs text-white/55 lg:hidden">Mobile app style dashboard • {tabs.find((tab) => tab.id === activeTab)?.label}</p>
           </div>
           <div className="flex gap-3">
-            <a href="/admin/payments" className="flex items-center gap-2 rounded-full border border-[#d7a84f]/60 px-5 py-3 font-bold text-[#f5d891]">Payments</a>
+            <a href="/admin/bookings" className="flex items-center gap-2 rounded-full border border-[#d7a84f]/60 px-4 py-3 font-bold text-[#f5d891] sm:px-5">Bookings</a>
+            <a href="/admin/payments" className="flex items-center gap-2 rounded-full border border-[#d7a84f]/60 px-4 py-3 font-bold text-[#f5d891] sm:px-5">Payments</a>
             <button onClick={persistAll} className="flex items-center gap-2 rounded-full bg-[#d7a84f] px-5 py-3 font-bold text-[#4b0718]"><Save className="h-4 w-4" /> Save</button>
             <button onClick={logout} className="rounded-full border border-white/20 p-3 text-white"><LogOut className="h-5 w-5" /></button>
           </div>
