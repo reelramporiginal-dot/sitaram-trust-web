@@ -1,4 +1,4 @@
-import { CreditCard, Download, Info, QrCode } from 'lucide-react'
+import { Info, QrCode } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Settings } from '../types'
 
