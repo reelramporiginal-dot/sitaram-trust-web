@@ -158,7 +158,10 @@ export function PaymentsAdmin() {
             <p className="text-xs uppercase tracking-[0.35em] text-[#f5d891]">Admin Panel</p>
             <h1 className="font-serif text-2xl font-bold">Payments & Invoices</h1>
           </div>
-          <a href="/admin" className="flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-bold"><ArrowLeft className="h-4 w-4" /> Dashboard</a>
+          <div className="flex gap-2">
+            <a href="/admin/bookings" className="flex items-center gap-2 rounded-full border border-[#d7a84f]/60 px-4 py-2 text-sm font-bold text-[#f5d891]">Online Bookings</a>
+            <a href="/admin" className="flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-bold"><ArrowLeft className="h-4 w-4" /> Dashboard</a>
+          </div>
         </div>
       </header>
 
