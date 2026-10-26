@@ -148,14 +148,10 @@ In Supabase Dashboard:
 
 1. Go to **Authentication → Users**
 2. Click **Add user**
-3. Add email and password, for example:
+3. Add the owner's email and a **strong, unique password** (12+ characters). Never write the password in this repository.
+4. Put the same email in the `ADMIN_EMAILS` environment variable on Vercel (comma separated) so the payment/booking admin API accepts it.
 
-```txt
-Email: admin@sitaramsevatrust.org
-Password: seva2026
-```
-
-Use the same credentials at `/login`.
+Use these credentials at `/login`. If an older password was ever published in this README, change it now in **Authentication → Users**.
 
 ## Admin Panel
 
@@ -200,3 +196,16 @@ If Supabase environment variables or policies are missing, admin changes may sav
 ```txt
 Supabase publish successful
 ```
+
+
+## Online booking + payments (Cashfree)
+
+The full rulebook is `PAYMENT_BIBLE.md`. Quick start:
+
+1. Supabase SQL Editor: run `db/sql/001` ... `005` in order (each is safe to re-run).
+2. Vercel env: copy every name from `.env.example` (sandbox keys first).
+3. Cashfree dashboard: webhook URL `https://<your-domain>/api/pay-webhook`.
+4. cron-job.org (header `Authorization: Bearer <CRON_SECRET>`): `/api/cron/reconcile` every 5 min, `/api/cron/send-emails` every 15 min, `/api/cron/enqueue-greetings` daily 08:00 IST.
+5. Admin > Rooms > Save (this syncs prices/units into `room_inventory`), then test the walkthrough in section 14 of the Bible.
+
+Status and history: `PROJECT_STATUS.md`, `CHANGELOG.md`.
