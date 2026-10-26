@@ -7,10 +7,13 @@ import type { PluginOption } from 'vite'
 export default defineConfig(async () => {
   const plugins: PluginOption[] = [react(), tailwindcss()];
   try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const m = await import('./.vite-source-tags.js');
     plugins.push(m.sourceTags());
-  } catch {}
+  } catch {
+    /* optional dev-only plugin */
+  }
   return {
     plugins,
   };
