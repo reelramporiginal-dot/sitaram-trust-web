@@ -390,7 +390,7 @@ export function Home() {
           <div className="flex items-center gap-3"><MapPin className="h-8 w-8 text-[#b7812d]" /><div><p className="font-bold text-[#4b0718]">Near Attractions</p><p className="text-sm text-[#6b5560]">Ram Mandir 1.7 km • Hanuman Garhi 1.3 km</p></div></div>
         </div>
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-3">
-          {rooms.map((room) => <RoomCard key={room.id} room={room} onPay={setPayRoom} whatsapp={settings.whatsapp} phone={settings.phone} />)}
+          {rooms.map((room) => <RoomCard key={room.id} room={room} onPay={setPayRoom} onBook={openBooking} whatsapp={settings.whatsapp} phone={settings.phone} />)}
         </div>
       </section>
 
