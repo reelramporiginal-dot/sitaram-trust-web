@@ -2,7 +2,7 @@
 // Roz ek poster + caption Facebook Page AUR Instagram par post karta hai (data/postSchedule.json se).
 // cron-job.org is URL ko roz ek baar hit karega:
 //   https://shrisitaramsevatrust.com/api/post-facebook
-//   Header:  Authorization: Bearer <CRON_SECRET>      (ya ?key=<CRON_SECRET>)
+//   Header:  Authorization: Bearer <CRON_SECRET>      (?key= ab band hai)
 //
 // Vercel Environment Variables:
 //   CRON_SECRET           (required) koi bhi lamba random string
@@ -16,6 +16,7 @@
 // Test: ?dry=1 (sirf preview, post nahi) | ?force=1 (duplicate check skip)
 
 import fs from 'node:fs';
+import { safeEq } from './_pay-lib.js';
 import path from 'node:path';
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
@@ -149,10 +150,12 @@ async function postToInstagram({ ver, pageId, token, post, imageUrl, caption, fo
 // ---------------- Handler ----------------
 export default async function handler(req, res) {
   try {
+    // Bearer only (no ?key= : query strings leak into logs). Fail closed if the secret is not set.
     const secret = process.env.CRON_SECRET;
-    const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || req.query?.key;
-    if (!secret || given !== secret) {
-      return res.status(401).json({ success: false, error: 'Unauthorized (CRON_SECRET galat ya missing)' });
+    if (!secret) return res.status(503).json({ success: false, error: 'CRON_SECRET set nahi hai' });
+    const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!given || !safeEq(given, secret)) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     const pageId = process.env.FB_PAGE_ID;
