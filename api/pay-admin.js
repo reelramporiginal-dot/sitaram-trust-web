@@ -1,143 +1,196 @@
-// ROOT PATH: api/booking.js
-// One function (Vercel Hobby = max 12 functions). vercel.json rewrites map the clean URLs:
-//   POST /api/booking-quote   -> ?op=quote     price + availability, no DB write
-//   POST /api/booking-create  -> ?op=create    reserve_room() -> gateway order -> payment_session_id
-//   POST /api/booking-retry   -> ?op=retry     new payment attempt on a still-held booking
-//   GET  /api/booking-status  -> ?op=status    ?ref=&t=  (polled by /booking/:ref)
-//   GET  /api/booking-invoice -> ?op=invoice   ?ref=&t=  printable invoice
-import { sb, httpError, esc } from './_pay-lib.js';
-import * as gw from './_gateway.js';
-import { bookingInvoicePage } from './_mail.js';
-import {
-  q, rpc, readBody, clientIp, rateLimit, verifyTurnstile, validateStay, validateGuest, mapSqlError,
-  getBooking, startPayment, extendHold, syncOrder, publicBooking,
-} from './_booking-lib.js';
+// api/pay-admin.js — sirf admin (Supabase login) ke liye
+//   GET  -> latest payment requests
+//   POST {action:'create'|'cancel'|'resend'|'mark_offline', ...}
+import { requireAdmin, sb, byId, newToken, isEmail, httpError, siteUrl, finalizePayment, emailInvoice, invoiceUrl, gatewayReady } from './_pay-lib.js';
+import { gatewayConfigured, gatewayName, cfEnv } from './_gateway.js';
+import { q, startRefund } from './_booking-lib.js';
+import { enqueueJob, runJobs } from './_mail.js';
 
-const send = (res, status, body) => res.status(status).json(body);
-
-async function quote(req, res) {
-  const ip = clientIp(req);
-  await rateLimit(`quote:${ip}`, 60, 60, { failOpen: true });
-  const s = validateStay(readBody(req));
-  try {
-    const out = await rpc('quote_room', { p_room_id: s.roomId, p_check_in: s.checkIn, p_check_out: s.checkOut, p_rooms: s.rooms, p_guests: s.guests, p_pay_mode: s.payMode });
-    return send(res, 200, { success: true, quote: out });
-  } catch (e) {
-    throw mapSqlError(e);
-  }
-}
-
-async function create(req, res) {
-  const ip = clientIp(req);
-  const body = readBody(req);
-  await rateLimit(`create:ip:${ip}`, 10, 600);
-  const stay = validateStay(body);
-  const guest = validateGuest(body);
-  await rateLimit(`create:phone:${guest.phone}`, 5, 3600);
-  await rateLimit(`create:email:${guest.email}`, 5, 3600);
-  if (!(await verifyTurnstile(body.turnstile_token, ip))) throw httpError(400, 'Security check pass nahi hui. Page refresh karke dobara try karein.');
-  if (!gw.gatewayConfigured()) throw httpError(503, 'Online payment abhi chalu nahi hai. Hotel ko call karein.');
-
-  let held;
-  try {
-    held = await rpc('reserve_room', {
-      p_room_id: stay.roomId, p_check_in: stay.checkIn, p_check_out: stay.checkOut, p_rooms: stay.rooms, p_guests: stay.guests,
-      p_name: guest.name, p_phone: guest.phone, p_email: guest.email, p_pay_mode: stay.payMode, p_hold_minutes: 20,
-    });
-  } catch (e) {
-    throw mapSqlError(e);
-  }
-  const booking = (await sb(`guest_bookings?id=eq.${held.id}&select=*,booking_payments(*)`))[0];
-  try {
-    await sb(`guest_bookings?id=eq.${held.id}`, {
-      method: 'PATCH', prefer: 'return=minimal',
-      body: { marketing_consent: guest.marketing, consent_text: guest.consentText },
-    });
-    const pay = await startPayment(booking, held.pay_now_paise);
-    return send(res, 200, {
-      success: true,
-      booking_ref: held.booking_ref,
-      token: held.public_token,
-      payment_session_id: pay.paymentSessionId,
-      order_id: pay.orderId,
-      amount_paise: held.pay_now_paise,
-      env: gw.cfEnv(),
-    });
-  } catch (e) {
-    // could not start payment: release the hold immediately (R5)
-    await sb(`guest_bookings?id=eq.${held.id}&status=eq.pending`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'cancelled', cancel_reason: 'PAYMENT_START_FAILED' } }).catch(() => {});
-    throw e;
-  }
-}
-
-async function retry(req, res) {
-  const body = readBody(req);
-  await rateLimit(`retry:${clientIp(req)}`, 20, 600);
-  const b = await getBooking(body.ref, body.token);
-  await rateLimit(`retry:ref:${b.booking_ref}`, 6, 600);
-  const pays = [...(b.booking_payments || [])].sort((a, c) => new Date(c.created_at) - new Date(a.created_at));
-  // make sure an earlier attempt was not actually paid before opening a new order
-  for (const p of pays.slice(0, 2)) if (['created', 'pending', 'failed'].includes(p.status)) await syncOrder(p.gateway_order_id).catch((e) => console.error('retry sync failed:', e.message));
-  const fresh = await getBooking(body.ref, body.token);
-  if (fresh.status === 'confirmed' || fresh.status === 'completed') return send(res, 200, { success: true, alreadyPaid: true });
-  if (fresh.status !== 'pending') throw httpError(410, 'Ye booking ab active nahi hai. Kripya nayi booking karein.');
-  const extended = await extendHold(fresh);
-  const amount = pays[0]?.amount_paise || fresh.advance_paise;
-  const pay = await startPayment({ ...fresh, hold_expires_at: extended.hold_expires_at }, amount);
-  return send(res, 200, {
-    success: true, booking_ref: fresh.booking_ref, token: fresh.public_token,
-    payment_session_id: pay.paymentSessionId, order_id: pay.orderId, amount_paise: amount, env: gw.cfEnv(),
-  });
-}
-
-async function status(req, res) {
-  const ip = clientIp(req);
-  await rateLimit(`status:${ip}`, 120, 60, { failOpen: true });
-  let b = await getBooking(req.query?.ref, req.query?.t);
-  const latest = [...(b.booking_payments || [])].sort((a, c) => new Date(c.created_at) - new Date(a.created_at))[0];
-  if (b.status === 'pending' && latest && ['created', 'pending', 'failed'].includes(latest.status)) {
-    // server-side status fetch from the gateway (R2), at most once per 4 seconds per booking
-    let allowed = false;
-    try {
-      allowed = (await rpc('hit_rate_limit', { p_key: `sync:${b.booking_ref}`, p_max: 1, p_window_seconds: 4 })) === true;
-    } catch {
-      allowed = false;
-    }
-    if (allowed) {
-      await syncOrder(latest.gateway_order_id).catch((e) => console.error('status sync failed:', e.message));
-      b = await getBooking(req.query?.ref, req.query?.t);
-    }
-  }
-  return send(res, 200, { success: true, booking: publicBooking(b) });
-}
-
-async function invoice(req, res) {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  try {
-    const b = await getBooking(req.query?.ref, req.query?.t);
-    const pay = (b.booking_payments || []).find((p) => p.status === 'success' && p.raw_status === 'SUCCESS' && p.invoice_no);
-    if (!pay) throw httpError(404, 'Invoice nahi mila');
-    return res.status(200).send(bookingInvoicePage(b, pay));
-  } catch (e) {
-    return res.status(e.status || 500).send(`<!doctype html><meta charset="utf-8"><body style="font-family:Arial;text-align:center;padding:60px;"><h2>${esc(e.status && e.status < 500 ? e.message : 'Server error')}</h2></body>`);
-  }
-}
+const payUrl = (p) => `${siteUrl()}/pay/${p.token}`;
+const view = (p) => ({
+  ...p,
+  payUrl: payUrl(p),
+  invoiceUrl: p.status === 'paid' ? invoiceUrl(p) : null,
+  expired: p.status === 'created' && new Date(p.expires_at).getTime() < Date.now(),
+});
+const rupeesToPaise = (v, label) => {
+  const n = Math.round(Number(v) * 100);
+  if (!Number.isFinite(n) || n < 100 || n > 100000000) throw httpError(400, `${label}: ₹1 se ₹10,00,000 ke beech daalein`);
+  return n;
+};
+const clean = (v, max) => (v === undefined || v === null || v === '' ? null : String(v).trim().slice(0, max));
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  const op = String(req.query?.op || '');
   try {
-    if (op === 'invoice' && req.method === 'GET') return await invoice(req, res);
-    if (op === 'status' && req.method === 'GET') return await status(req, res);
+    await requireAdmin(req);
+
+    if (req.method === 'GET') {
+      const view = String(req.query?.view || '');
+      if (view === 'bookings') {
+        const rows = await sb('guest_bookings?select=*,booking_payments(*)&order=created_at.desc&limit=300');
+        return res.status(200).json({ success: true, gateway: { name: gatewayName(), configured: gatewayConfigured(), env: cfEnv() }, items: rows });
+      }
+      if (view === 'emails') {
+        const rows = await sb('email_jobs?select=id,kind,status,is_marketing,send_at,sent_at,attempts,last_error,dedupe_key,booking_id,email_contacts(email,full_name,unsubscribed_at,marketing_consent)&order=created_at.desc&limit=300');
+        const stats = await sb('email_contacts?select=id&limit=1', { prefer: 'count=exact' }).catch(() => []);
+        return res.status(200).json({ success: true, items: rows, contactsSample: stats.length });
+      }
+      const rows = await sb('payment_requests?select=*&order=created_at.desc&limit=200');
+      return res.status(200).json({ success: true, gatewayReady: gatewayReady(), items: rows.map(view) });
+    }
     if (req.method !== 'POST') throw httpError(405, 'Method not allowed');
-    if (op === 'quote') return await quote(req, res);
-    if (op === 'create') return await create(req, res);
-    if (op === 'retry') return await retry(req, res);
-    throw httpError(404, 'Not found');
+    const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+
+    if (b.action === 'create') {
+      const name = clean(b.guestName, 100);
+      if (!name) throw httpError(400, 'Guest ka naam zaroori hai');
+      const email = clean(b.guestEmail, 254)?.toLowerCase() || null;
+      if (email && !isEmail(email)) throw httpError(400, 'Email sahi nahi hai');
+      const amount = rupeesToPaise(b.amount, 'Amount');
+      const total = b.total ? rupeesToPaise(b.total, 'Total amount') : null;
+      const days = Math.min(Math.max(parseInt(b.expiresDays, 10) || 7, 1), 60);
+      const created = await sb('payment_requests', {
+        method: 'POST',
+        prefer: 'return=representation',
+        body: {
+          token: newToken(),
+          booking_id: clean(b.bookingId, 40),
+          guest_name: name,
+          guest_phone: clean(b.guestPhone, 20),
+          guest_email: email,
+          room: clean(b.room, 100),
+          check_in: clean(b.checkIn, 30),
+          guests: clean(b.guests, 10),
+          description: clean(b.description, 200),
+          amount_paise: amount,
+          total_amount_paise: total,
+          expires_at: new Date(Date.now() + days * 86400000).toISOString(),
+        },
+      });
+      let row = created[0];
+      if (b.offline) {
+        const { row: done, mail } = await finalizePayment(row, { method: clean(b.offline.method, 40) || 'Offline', reference: clean(b.offline.reference, 100) });
+        return res.status(200).json({ success: true, item: view(done), emailed: Boolean(mail.ok), mailError: mail.ok ? undefined : mail.error });
+      }
+      return res.status(200).json({ success: true, item: view(row) });
+    }
+
+    // ---------- booking system actions ----------
+    if (b.action === 'sync_inventory') {
+      // Rooms from the admin panel (site_config) -> room_inventory. total_units = room.available.
+      const cfg = (await sb('site_config?id=eq.main&select=data'))[0]?.data;
+      const rooms = Array.isArray(cfg?.rooms) ? cfg.rooms : [];
+      if (!rooms.length) throw httpError(409, 'Admin panel me rooms publish nahi hue hain. Pehle Save/Publish karein.');
+      const adv = (b.advancePercent && Number(b.advancePercent) > 0 && Number(b.advancePercent) <= 100) ? Math.round(Number(b.advancePercent)) : null;
+      const existing = await sb('room_inventory?select=room_id,advance_percent');
+      const keep = Object.fromEntries(existing.map((r) => [r.room_id, r.advance_percent]));
+      const body = rooms.map((r) => ({
+        room_id: String(r.id),
+        room_name: String(r.name),
+        total_units: Math.max(0, parseInt(r.available, 10) || 0),
+        unit_price_paise: Math.round(Number(r.price) * 100),
+        tax_paise_per_night: Math.round((Number(r.tax) || 0) * 100),
+        max_guests_per_unit: /dorm/i.test(String(r.name)) ? 1 : Math.max(1, parseInt(String(r.capacity), 10) || 2), // dormitory: 1 guest per bed
+        advance_percent: adv ?? keep[String(r.id)] ?? 50,
+        active: true,
+        updated_at: new Date().toISOString(),
+      })).filter((r) => r.unit_price_paise > 0);
+      await sb('room_inventory?on_conflict=room_id', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body });
+      return res.status(200).json({ success: true, synced: body.length });
+    }
+
+    if (b.action === 'set_advance') {
+      const pct = Math.round(Number(b.percent));
+      if (!(pct >= 1 && pct <= 100)) throw httpError(400, 'Advance 1 se 100 % ke beech daalein');
+      await sb(`room_inventory?room_id=eq.${q(String(b.roomId))}`, { method: 'PATCH', prefer: 'return=minimal', body: { advance_percent: pct, updated_at: new Date().toISOString() } });
+      return res.status(200).json({ success: true });
+    }
+
+    if (['refund', 'resend_confirmation', 'cancel_booking', 'retry_job'].includes(b.action)) {
+      if (b.action === 'retry_job') {
+        const job = (await sb(`email_jobs?id=eq.${q(String(b.jobId))}&select=id,dedupe_key,status`))[0];
+        if (!job) throw httpError(404, 'Job nahi mila');
+        if (!['failed', 'skipped'].includes(job.status)) throw httpError(409, 'Sirf failed/skipped job dobara queue hota hai');
+        await sb(`email_jobs?id=eq.${job.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'queued', attempts: 0, last_error: null, send_at: new Date().toISOString() } });
+        const r = await runJobs({ keys: [job.dedupe_key] });
+        return res.status(200).json({ success: true, result: r.results[0] || null });
+      }
+      const booking = (await sb(`guest_bookings?id=eq.${q(String(b.bookingId))}&select=*,booking_payments(*)`))[0];
+      if (!booking) throw httpError(404, 'Booking nahi mili');
+      const paid = (booking.booking_payments || []).find((p) => p.status === 'success' && p.raw_status === 'SUCCESS');
+
+      if (b.action === 'resend_confirmation') {
+        if (!paid || !['confirmed', 'completed'].includes(booking.status)) throw httpError(409, 'Sirf confirmed booking ka mail dobara jata hai');
+        const email = clean(b.email, 254)?.toLowerCase();
+        if (email) {
+          if (!isEmail(email)) throw httpError(400, 'Email sahi nahi hai');
+          await sb(`guest_bookings?id=eq.${booking.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { guest_email: email } });
+        }
+        const contact = (await sb(`email_contacts?last_booking_id=eq.${booking.id}&select=id`))[0] || (await sb(`email_contacts?email_lower=eq.${q((email || booking.guest_email).toLowerCase())}&select=id`))[0];
+        if (!contact) throw httpError(409, 'Contact nahi mila');
+        const key = `booking_confirmed:resend:${booking.id}:${Date.now()}`;
+        await enqueueJob({ contactId: contact.id, bookingId: booking.id, kind: 'booking_confirmed', key });
+        const r = await runJobs({ keys: [key] });
+        const ok = r.results[0]?.result === 'sent';
+        return res.status(ok ? 200 : 502).json({ success: ok, error: ok ? undefined : r.results[0]?.error || r.results[0]?.reason || 'Mail nahi gaya' });
+      }
+
+      if (b.action === 'refund') {
+        if (!paid) throw httpError(409, 'Is booking me koi successful payment nahi hai');
+        const amount = b.amount ? rupeesToPaise(b.amount, 'Refund amount') : paid.amount_paise;
+        const out = await startRefund(paid, amount, clean(b.reason, 200) || 'Admin refund', { kind: 'refund_notice' });
+        return res.status(200).json({ success: true, ...out });
+      }
+
+      if (b.action === 'cancel_booking') {
+        if (['cancelled', 'refunded', 'completed'].includes(booking.status)) throw httpError(409, 'Ye booking pehle hi band hai');
+        await sb(`guest_bookings?id=eq.${booking.id}&status=in.(pending,confirmed,expired)`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'cancelled', cancel_reason: clean(b.reason, 200) || 'Admin cancelled', updated_at: new Date().toISOString() } });
+        await sb(`email_jobs?booking_id=eq.${booking.id}&status=eq.queued&kind=in.(pre_arrival,thank_you)`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'skipped', last_error: 'booking cancelled' } });
+        let refund = null;
+        if (b.refund && paid) {
+          const amount = b.amount ? rupeesToPaise(b.amount, 'Refund amount') : paid.amount_paise;
+          refund = await startRefund(paid, amount, clean(b.reason, 200) || 'Booking cancelled', { kind: 'refund_notice' });
+        }
+        return res.status(200).json({ success: true, refund });
+      }
+    }
+
+    const row = b.id ? await byId(String(b.id)) : null;
+    if (!row) throw httpError(404, 'Payment request nahi mili');
+
+    if (b.action === 'cancel') {
+      if (row.status !== 'created') throw httpError(409, 'Sirf pending link cancel ho sakta hai');
+      await sb(`payment_requests?id=eq.${row.id}&status=eq.created`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'cancelled' } });
+      return res.status(200).json({ success: true });
+    }
+
+    if (b.action === 'mark_offline') {
+      if (row.status !== 'created') throw httpError(409, 'Ye payment pehle hi paid ya band hai');
+      const email = clean(b.email, 254)?.toLowerCase();
+      if (email) {
+        if (!isEmail(email)) throw httpError(400, 'Email sahi nahi hai');
+        await sb(`payment_requests?id=eq.${row.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { guest_email: email } });
+      }
+      const { row: done, mail } = await finalizePayment(row, { method: clean(b.method, 40) || 'Offline', reference: clean(b.reference, 100) });
+      return res.status(200).json({ success: true, item: view(done), emailed: Boolean(mail.ok), mailError: mail.ok ? undefined : mail.error });
+    }
+
+    if (b.action === 'resend') {
+      if (row.status !== 'paid') throw httpError(409, 'Invoice sirf paid payment ka hota hai');
+      const email = clean(b.email, 254)?.toLowerCase();
+      let cur = row;
+      if (email) {
+        if (!isEmail(email)) throw httpError(400, 'Email sahi nahi hai');
+        await sb(`payment_requests?id=eq.${row.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { guest_email: email } });
+        cur = await byId(row.id);
+      }
+      const mail = await emailInvoice(cur, { force: true });
+      return res.status(mail.ok ? 200 : 502).json({ success: Boolean(mail.ok), error: mail.ok ? undefined : mail.error });
+    }
+    throw httpError(400, 'Unknown action');
   } catch (e) {
-    if (!e.status || e.status >= 500) console.error(`booking:${op} failed:`, e.message, e.details ? JSON.stringify(e.details) : '');
-    // never leak internals: 5xx -> generic message
-    return res.status(e.status || 500).json({ success: false, error: e.status && e.status < 500 ? e.message : 'Kuch gadbad ho gayi, thodi der baad dobara koshish karein.', code: e.details?.code });
+    if (!e.status || e.status >= 500) console.error('pay-admin failed:', e.message, e.details || '');
+    return res.status(e.status || 500).json({ success: false, error: e.message });
   }
 }
