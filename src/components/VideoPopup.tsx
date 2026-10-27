@@ -2,10 +2,28 @@ import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Temple } from '../types'
 
-function youtubeEmbed(url: string) {
-  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/)
-  const id = match?.[1] || 'dQw4w9WgXcQ'
-  return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&rel=0&modestbranding=1`
+function youtubeId(input: string) {
+  const raw = (input || '').trim()
+  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw
+  try {
+    const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`)
+    const host = url.hostname.replace(/^www\.|^m\./, '')
+    let id = ''
+    if (host === 'youtu.be') id = url.pathname.split('/')[1] || ''
+    else if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+      const parts = url.pathname.split('/').filter(Boolean)
+      if (parts[0] === 'watch') id = url.searchParams.get('v') || ''
+      else if (['embed', 'shorts', 'live', 'v'].includes(parts[0])) id = parts[1] || ''
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : ''
+  } catch {
+    return ''
+  }
+}
+
+function youtubeEmbed(id: string) {
+  const origin = typeof window !== 'undefined' ? `&origin=${encodeURIComponent(window.location.origin)}` : ''
+  return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1${origin}`
 }
 
 export function VideoPopup({ youtubeUrl, videoSrc, poster, temples, source = 'storage', trigger = 0 }: { youtubeUrl: string; videoSrc?: string; poster?: string; temples: Temple[]; source?: 'storage' | 'youtube'; trigger?: number }) {
@@ -46,6 +64,9 @@ export function VideoPopup({ youtubeUrl, videoSrc, poster, temples, source = 'st
 
   if (!open) return null
 
+  const ytId = youtubeId(youtubeUrl)
+  const watchUrl = ytId ? `https://www.youtube.com/watch?v=${ytId}` : youtubeUrl
+
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-[#16030a]/85 px-4 backdrop-blur-md" onMouseDown={close}>
       <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-[#d7a84f]/35 bg-[#2a0611] p-3 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
@@ -57,16 +78,26 @@ export function VideoPopup({ youtubeUrl, videoSrc, poster, temples, source = 'st
         <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
           {source === 'storage' && videoSrc ? (
             <video src={videoSrc} poster={poster} className="h-full w-full object-cover" controls autoPlay muted playsInline onEnded={close} />
-          ) : (
+          ) : ytId ? (
             <iframe
               title="Ayodhya Darshan promo video"
-              src={youtubeEmbed(youtubeUrl)}
+              src={youtubeEmbed(ytId)}
               className="h-full w-full"
+              referrerPolicy="strict-origin-when-cross-origin"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
+          ) : (
+            <div className="grid h-full w-full place-items-center p-6 text-center text-white">
+              <p>Video link sahi nahi hai. Admin panel me YouTube link check karein.</p>
+            </div>
           )}
         </div>
+        {source !== 'storage' && ytId && (
+          <p className="px-4 pt-3 text-sm text-[#f5d891]">
+            Video na chale to <a href={watchUrl} target="_blank" rel="noreferrer" className="font-bold underline">YouTube par dekhein</a>
+          </p>
+        )}
         <div className="grid gap-3 p-4 sm:grid-cols-3">
           {temples.slice(0, 3).map((temple) => (
             <div key={temple.id} className="overflow-hidden rounded-2xl border border-[#d7a84f]/25 bg-white/10">
