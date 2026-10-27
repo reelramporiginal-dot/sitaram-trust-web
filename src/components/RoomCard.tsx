@@ -1,9 +1,10 @@
 import { Bath, BedDouble, Check, IndianRupee, Layers, Lock, MessageCircle, Users } from 'lucide-react'
 import type { Room } from '../types'
-import { ONLINE_PAYMENTS_ENABLED } from '../lib/hotel'
+import { isTestModeOnly, onlinePaymentsEnabled } from '../lib/hotel'
 
 export function RoomCard({ room, onPay, onBook, whatsapp, phone }: { room: Room; onPay: (room: Room) => void; onBook: (roomName: string) => void; whatsapp: string; phone: string }) {
   const soldOut = room.available <= 0
+  const payOn = onlinePaymentsEnabled()
   const wa = `https://wa.me/91${whatsapp.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(`Namaste, mujhe ${room.name} ke baare me jaankari chahiye.`)}`
   return (
     <article className="group overflow-hidden rounded-[2rem] border border-[#d7a84f]/20 bg-white shadow-xl shadow-[#4b0718]/10">
@@ -43,7 +44,7 @@ export function RoomCard({ room, onPay, onBook, whatsapp, phone }: { room: Room;
         <div className="mt-6 grid gap-2 sm:grid-cols-[1.6fr_1fr]">
           <button
             type="button"
-            onClick={() => (ONLINE_PAYMENTS_ENABLED ? onPay(room) : onBook(room.name))}
+            onClick={() => (payOn ? onPay(room) : onBook(room.name))}
             disabled={soldOut}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-[#4b0718] px-5 py-3.5 font-bold text-white shadow-lg shadow-[#4b0718]/20 transition hover:bg-[#7d1128] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -59,7 +60,7 @@ export function RoomCard({ room, onPay, onBook, whatsapp, phone }: { room: Room;
           </a>
         </div>
         <p className="mt-3 text-center text-xs text-[#6b5560]">
-          {ONLINE_PAYMENTS_ENABLED ? 'UPI · Card · Net Banking · Secured by Cashfree · ' : 'Form bharein, hum aapse jald sampark karenge · '}
+          {payOn ? `${isTestModeOnly() ? 'TEST MODE (sirf aapke browser me) · ' : ''}UPI · Card · Net Banking · Secured by Cashfree · ` : 'Form bharein, hum aapse jald sampark karenge · '}
           <a href={`tel:${phone}`} className="font-semibold underline">Call {phone}</a>
         </p>
       </div>
