@@ -101,3 +101,61 @@ textarea {
   border-color: #b7812d;
   box-shadow: 0 0 0 4px rgba(215, 168, 79, 0.16);
 }
+
+/* ---- Click feel: Tailwind v4 buttons pe pointer cursor nahi deta, isliye "dead" lagta tha ---- */
+button,
+[role='button'],
+a[href],
+summary,
+select,
+label[for],
+input[type='checkbox'],
+input[type='radio'],
+input[type='submit'] {
+  cursor: pointer;
+}
+
+button,
+[role='button'],
+a[href] {
+  -webkit-tap-highlight-color: rgba(215, 168, 79, 0.25);
+  touch-action: manipulation;
+  transition: transform 0.12s ease, filter 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+button:not(:disabled):hover,
+[role='button']:hover {
+  filter: brightness(1.06);
+}
+
+button:not(:disabled):active,
+[role='button']:active {
+  transform: scale(0.96);
+  filter: brightness(0.94);
+}
+
+a[href].rounded-full:active {
+  transform: scale(0.96);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+a[href]:focus-visible {
+  outline: 3px solid rgba(215, 168, 79, 0.6);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  [role='button'],
+  a[href] {
+    transition: none;
+  }
+  button:not(:disabled):active,
+  [role='button']:active {
+    transform: none;
+  }
+}
