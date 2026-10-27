@@ -60,7 +60,7 @@ export async function requireAdmin(req) {
   if (!r.ok) throw httpError(401, 'Session expire ho gaya, dobara login karo');
   const user = await r.json();
   const allow = (process.env.ADMIN_EMAILS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (allow.length && !allow.includes(String(user.email || '').toLowerCase())) throw httpError(403, 'Is account ko permission nahi hai');
+  if (allow.length && !allow.includes(String(user.email || '').toLowerCase())) throw httpError(403, `Is account ko permission nahi hai (login email: ${user.email || 'unknown'}). Vercel me ADMIN_EMAILS me yahi email daalein (${allow.length} email set hain), phir Redeploy karein.`);
   return user;
 }
 
