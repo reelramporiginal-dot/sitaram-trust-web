@@ -26,12 +26,12 @@ export default async function handler(req, res) {
     await requireAdmin(req);
 
     if (req.method === 'GET') {
-      const view = String(req.query?.view || '');
-      if (view === 'bookings') {
+      const viewName = String(req.query?.view || '');
+      if (viewName === 'bookings') {
         const rows = await sb('guest_bookings?select=*,booking_payments(*)&order=created_at.desc&limit=300');
         return res.status(200).json({ success: true, gateway: { name: gatewayName(), configured: gatewayConfigured(), env: cfEnv() }, items: rows });
       }
-      if (view === 'emails') {
+      if (viewName === 'emails') {
         const rows = await sb('email_jobs?select=id,kind,status,is_marketing,send_at,sent_at,attempts,last_error,dedupe_key,booking_id,email_contacts(email,full_name,unsubscribed_at,marketing_consent)&order=created_at.desc&limit=300');
         const stats = await sb('email_contacts?select=id&limit=1', { prefer: 'count=exact' }).catch(() => []);
         return res.status(200).json({ success: true, items: rows, contactsSample: stats.length });
